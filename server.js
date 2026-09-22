@@ -162,33 +162,132 @@ app.post('/api/verify-payment', (req, res) => {
   });
   savePayments(payments);
 
-  res.json({ verified: true, paymentId: razorpay_payment_id, planLabel: (PLANS[planKey] || {}).label || '' });
+  // PREMIUM account (username/mobile) se bandho — login karte hi wapas milega
+  const db = loadDB();
+  const pu = findUserByMobile(db, String(b.phone || '').replace(/\D/g, ''));
+  const months = PLAN_MONTHS[planKey] || 1;
+  const expMs = Date.now() + Math.round(months * 30.44 * 24 * 3600 * 1000);
+  if (pu) {
+    pu.premium = {
+      plan: planKey,
+      planLabel: (PLANS[planKey] || {}).label || '',
+      paymentId: razorpay_payment_id,
+      activatedAt: Date.now(),
+      expiresAt: expMs,
+    };
+    saveDB(db);
+  }
+
+  res.json({ verified: true, paymentId: razorpay_payment_id, planLabel: (PLANS[planKey] || {}).label || '', expiresAt: expMs, user: pu ? publicUser(pu) : null });
 });
 
 // ================================================================
-//  LOGIN: Naam + Mobile + OTP (server-side REAL verification)
-//  - OTP server par generate + SHA-256 hash + 5 min expiry + attempts limit
-//  - users data/users.json me (name + avatar + tokenHash) save hote hain
-//  - PRODUCTION SMS ke liye sendOtpSms() me MSG91/Twilio/Fast2SMS lagayein
+//  ACCOUNTS: Username+Password + Mobile OTP (server-side REAL)
+//  - data/users.json: { users: {username: {...}}, mobileToUser: {mobile: username} }
+//  - PREMIUM + FREE CREDITS server par — login karte hi account se wapas
+//  - password + OTP hashed; sessions tokenHash se
+//  - PRODUCTION SMS: sendOtpSms() me MSG91/Twilio/Fast2SMS lagayein
 // ================================================================
 const USERS_PATH = path.join(DATA_DIR, 'users.json');
 const otpStore = new Map(); // phone -> { hash, exp, attempts, count, windowExp, name }
+const PLAN_MONTHS = { '49': 1, '199': 6, '299': 12 };
 
-function loadUsers() {
-  try { return JSON.parse(fs.readFileSync(USERS_PATH, 'utf8')) || {}; } catch (e) { return {}; }
+function loadDB() {
+  try {
+    const db = JSON.parse(fs.readFileSync(USERS_PATH, 'utf8'));
+    if (db && db.users) return db;
+  } catch (e) { /* no db yet */ }
+  return { users: {}, mobileToUser: {} };
 }
-function saveUsers(u) {
+function saveDB(db) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(USERS_PATH, JSON.stringify(u, null, 2));
+  fs.writeFileSync(USERS_PATH, JSON.stringify(db, null, 2));
 }
-function sha256(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
+function sha256(s, salt) { return crypto.createHash('sha256').update(String(salt || '') + String(s)).digest('hex'); }
+
+function findUserByToken(db, token) {
+  if (!token) return null;
+  const th = sha256(token, 'tok');
+  return Object.values(db.users).find(u => (u.tokens && u.tokens[th]) || u.tokenHash === th) || null;
+}
+function findUserByMobile(db, mobile) {
+  const un = db.mobileToUser[mobile];
+  return un ? db.users[un] : null;
+}
+function publicUser(u) {
+  return {
+    username: u.username, name: u.name, mobile: u.mobile, avatar: u.avatar || '\u{1F4DA}',
+    premium: u.premium || null,
+    freeUsed: u.freeUsed || 0,
+  };
+}
+function premiumActive(u) {
+  return !!(u && u.premium && u.premium.expiresAt && u.premium.expiresAt > Date.now());
+}
+function issueToken(u) {
+  const token = crypto.randomBytes(24).toString('hex');
+  const th = sha256(token, 'tok');
+  u.tokens = u.tokens || {};
+  u.tokens[th] = Date.now();
+  // max 5 devices — purane sessions hatao
+  const entries = Object.entries(u.tokens).sort((a, b) => a[1] - b[1]);
+  while (entries.length > 5) { delete u.tokens[entries.shift()[0]]; }
+  u.lastLogin = new Date().toISOString();
+  return token;
+}
 
 function sendOtpSms(phone, code) {
   // PRODUCTION: yahan real SMS gateway call karein (MSG91 / Twilio / Fast2SMS).
-  // Abhi demo mode: OTP response me 'demoOtp' milta hai, app use "Demo SMS" box me dikhata hai.
+  // Abhi demo mode: OTP response me 'demoOtp' milta hai.
   return { demoOtp: code };
 }
 
+// ---------- Register: username + password + name + mobile ----------
+app.post('/api/register', (req, res) => {
+  const b = req.body || {};
+  const username = String(b.username || '').trim().toLowerCase();
+  const password = String(b.password || '');
+  const name = String(b.name || '').trim().slice(0, 30);
+  const mobile = String(b.mobile || '').replace(/\D/g, '');
+  if (!/^[a-z0-9_]{3,20}$/.test(username)) return res.status(400).json({ ok: false, error: 'Username: 3-20 me letter/digit/underscore (a-z, 0-9, _).' });
+  if (password.length < 6) return res.status(400).json({ ok: false, error: 'Password kam se kam 6 akshar ka rakhein.' });
+  if (name.length < 2) return res.status(400).json({ ok: false, error: 'Naam likhna zaroori hai.' });
+  if (!/^[6-9]\d{9}$/.test(mobile)) return res.status(400).json({ ok: false, error: 'Valid 10-digit Indian mobile number daalein.' });
+
+  const db = loadDB();
+  if (db.users[username]) return res.status(409).json({ ok: false, error: 'Yeh username pehle se hai — koi aur chunein.' });
+  if (db.mobileToUser[mobile]) return res.status(409).json({ ok: false, error: 'Is mobile se account pehle se hai — Login karein (Username-Password ya Mobile OTP).' });
+
+  const salt = crypto.randomBytes(8).toString('hex');
+  const u = {
+    username, name, mobile,
+    passwordHash: sha256(password, salt), salt,
+    avatar: '\u{1F4DA}', premium: null, freeUsed: 0,
+    createdAt: new Date().toISOString(),
+  };
+  const token = issueToken(u);
+  db.users[username] = u;
+  db.mobileToUser[mobile] = username;
+  saveDB(db);
+  res.json({ ok: true, token, user: publicUser(u) });
+});
+
+// ---------- Login: username + password ----------
+app.post('/api/login', (req, res) => {
+  const b = req.body || {};
+  const username = String(b.username || '').trim().toLowerCase();
+  const password = String(b.password || '');
+  const db = loadDB();
+  const u = db.users[username];
+  if (!u || !u.passwordHash || sha256(password, u.salt) !== u.passwordHash) {
+    return res.status(401).json({ ok: false, error: 'Username ya password galat hai.' });
+  }
+  const token = issueToken(u);
+  saveDB(db);
+  res.json({ ok: true, token, user: publicUser(u) });
+});
+
+// ---------- Mobile + OTP ----------
 app.post('/api/send-otp', (req, res) => {
   const b = req.body || {};
   const phone = String(b.phone || '').replace(/\D/g, '');
@@ -204,17 +303,11 @@ app.post('/api/send-otp', (req, res) => {
   if (!rec || rec.windowExp <= now) rec = { count: 0, windowExp: now + 10 * 60 * 1000 };
   rec.count++;
   const code = String(Math.floor(100000 + Math.random() * 900000));
-  rec.hash = sha256(code);
+  rec.hash = sha256(code, 'otp');
   rec.exp = now + 5 * 60 * 1000;
   rec.attempts = 0;
   rec.name = name;
   otpStore.set(phone, rec);
-
-  const users = loadUsers();
-  if (!users[phone]) users[phone] = { name, avatar: '\u{1F4DA}', createdAt: new Date().toISOString() };
-  else users[phone].name = name;
-  saveUsers(users);
-
   const sms = sendOtpSms(phone, code);
   res.json({ ok: true, demoOtp: sms.demoOtp });
 });
@@ -228,33 +321,61 @@ app.post('/api/verify-otp', (req, res) => {
   if (Date.now() > rec.exp) { otpStore.delete(phone); return res.status(400).json({ ok: false, error: 'OTP expire ho gaya. Naya OTP bhejein.' }); }
   rec.attempts++;
   if (rec.attempts > 5) { otpStore.delete(phone); return res.status(429).json({ ok: false, error: 'Bahut zyada galat attempts. Naya OTP bhejein.' }); }
-  if (sha256(otp) !== rec.hash) return res.status(400).json({ ok: false, error: 'Galat OTP. Dobara try karein.' });
-
+  if (sha256(otp, 'otp') !== rec.hash) return res.status(400).json({ ok: false, error: 'Galat OTP. Dobara try karein.' });
   otpStore.delete(phone);
-  const users = loadUsers();
-  const u = users[phone] || { name: rec.name || 'Student', avatar: '\u{1F4DA}', createdAt: new Date().toISOString() };
-  if (rec.name) u.name = rec.name;
-  const token = crypto.randomBytes(24).toString('hex');
-  u.tokenHash = sha256(token);
-  u.lastLogin = new Date().toISOString();
-  users[phone] = u;
-  saveUsers(users);
-  res.json({ ok: true, token, user: { phone, name: u.name, avatar: u.avatar || '\u{1F4DA}' } });
+
+  const db = loadDB();
+  let u = findUserByMobile(db, phone);
+  if (!u) {
+    let username = phone;
+    let n = 1;
+    while (db.users[username]) { username = phone + '_' + n; n++; }
+    u = { username, name: rec.name || 'Student', mobile: phone, passwordHash: '', salt: '', avatar: '\u{1F4DA}', premium: null, freeUsed: 0, createdAt: new Date().toISOString() };
+    db.users[username] = u;
+    db.mobileToUser[phone] = username;
+  } else if (rec.name) {
+    u.name = rec.name;
+  }
+  const token = issueToken(u);
+  saveDB(db);
+  res.json({ ok: true, token, user: publicUser(u) });
 });
 
+// ---------- Session: /api/me (login ke baad premium + credits wapas) ----------
+app.post('/api/me', (req, res) => {
+  const b = req.body || {};
+  const db = loadDB();
+  const u = findUserByToken(db, b.token);
+  if (!u) return res.status(401).json({ ok: false, error: 'Session expire ho gaya. Dobara login karein.' });
+  res.json({ ok: true, user: publicUser(u) });
+});
+
+// ---------- Profile save (token required) ----------
 app.post('/api/save-profile', (req, res) => {
   const b = req.body || {};
-  const phone = String(b.phone || '').replace(/\D/g, '');
-  const users = loadUsers();
-  const u = users[phone];
-  if (!u || !b.token || sha256(String(b.token)) !== u.tokenHash) {
-    return res.status(401).json({ ok: false, error: 'Login valid nahi hai. Dobara login karein.' });
-  }
+  const db = loadDB();
+  const u = findUserByToken(db, b.token);
+  if (!u) return res.status(401).json({ ok: false, error: 'Login valid nahi hai. Dobara login karein.' });
   if (typeof b.name === 'string' && b.name.trim().length >= 2) u.name = b.name.trim().slice(0, 30);
   if (typeof b.avatar === 'string' && b.avatar.length <= 8) u.avatar = b.avatar;
-  users[phone] = u;
-  saveUsers(users);
-  res.json({ ok: true, user: { phone, name: u.name, avatar: u.avatar } });
+  saveDB(db);
+  res.json({ ok: true, user: publicUser(u) });
+});
+
+// ---------- Free credit gate (quiz se pehle — server-side STRICT) ----------
+app.post('/api/use-credit', (req, res) => {
+  const b = req.body || {};
+  const db = loadDB();
+  const u = findUserByToken(db, b.token);
+  if (!u) return res.status(401).json({ ok: false, error: 'Quiz ke liye login zaroori hai.' });
+  if (premiumActive(u)) return res.json({ ok: true, unlimited: true, user: publicUser(u) });
+  const used = u.freeUsed || 0;
+  if (used >= 3) {
+    return res.status(402).json({ ok: false, reason: 'no_credits', error: 'Aapke 3 free tests poore ho gaye. Unlimited ke liye Premium lein.', user: publicUser(u) });
+  }
+  u.freeUsed = used + 1;
+  saveDB(db);
+  res.json({ ok: true, remaining: 3 - u.freeUsed, user: publicUser(u) });
 });
 
 // ---------- start ----------

@@ -24,7 +24,7 @@ const DATA_DIR = path.join(__dirname, 'data');
 const PAYMENTS_PATH = path.join(DATA_DIR, 'payments.json');
 
 const PLANS = {
-  '49':  { label: '1 Month',  months: 1,  amount: 49 },
+  '49':  { label: '1 Year',   months: 12, amount: 49 },
   '199': { label: '6 Months', months: 6,  amount: 199 },
   '299': { label: '1 Year',   months: 12, amount: 299 },
 };
@@ -222,7 +222,7 @@ app.post('/api/verify-payment', async (req, res) => {
 // ================================================================
 const USERS_PATH = path.join(DATA_DIR, 'users.json');
 const otpStore = new Map(); // phone -> { hash, exp, attempts, count, windowExp, name }
-const PLAN_MONTHS = { '49': 1, '199': 6, '299': 12 };
+const PLAN_MONTHS = { '49': 12 };
 
 function loadDB() {
   try {
@@ -408,6 +408,24 @@ app.post('/api/use-credit', (req, res) => {
   u.freeUsed = used + 1;
   saveDB(db);
   res.json({ ok: true, remaining: 3 - u.freeUsed, user: publicUser(u) });
+});
+
+// ---------- ADMIN: all registered users + manual PRO activation ----------
+app.post('/api/admin/users', (req, res) => {
+  const cfg = loadConfig(); const key = String((req.body || {}).adminKey || '');
+  if (key !== String(cfg.adminKey || 'PadhaQ@Rohit')) return res.status(401).json({ ok:false, error:'Admin key galat hai.' });
+  const db = loadDB();
+  const users = Object.values(db.users).map(u => ({ username:u.username, name:u.name, mobile:u.mobile, freeUsed:u.freeUsed||0, premium:u.premium||null, createdAt:u.createdAt||u.created||'' }));
+  res.json({ ok:true, users });
+});
+app.post('/api/admin/activate-pro', (req, res) => {
+  const cfg = loadConfig(); const b=req.body||{}; const key=String(b.adminKey||'');
+  if (key !== String(cfg.adminKey || 'PadhaQ@Rohit')) return res.status(401).json({ok:false,error:'Admin key galat hai.'});
+  const db=loadDB(); const u=db.users[String(b.username||'').toLowerCase()];
+  if (!u) return res.status(404).json({ok:false,error:'User nahi mila.'});
+  const months = 12; const now=Date.now(); const old=(u.premium&&u.premium.expiresAt>now)?u.premium.expiresAt:now;
+  u.premium={ plan:'49', planLabel:'1 Year (Admin Pro)', paymentId:'ADMIN-'+now, activatedAt:now, expiresAt:old+months*30.44*24*3600*1000 };
+  saveDB(db); res.json({ok:true,user:publicUser(u)});
 });
 
 // ---------- ADMIN: payments list (naam, WhatsApp, UTR, Payment ID) ----------

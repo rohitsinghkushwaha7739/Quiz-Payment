@@ -111,6 +111,22 @@
                 <button type="button" id="change-file" class="text-xs text-rose-400 hover:text-rose-300 underline font-medium">Doosri file chunein</button>
             </div>
 
+            <!-- Free PDF Website Box -->
+            <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-900/40 to-cyan-900/30 border border-emerald-600/40 rounded-2xl p-4 sm:p-5 shadow-lg">
+                <div class="flex items-center space-x-3">
+                    <div class="anim-bounce text-3xl sm:text-4xl">📚</div>
+                    <div>
+                        <p class="text-sm sm:text-base font-bold text-white">FREE PDF Library — PadhaQ Students ke liye</p>
+                        <p class="text-[11px] sm:text-xs text-emerald-200/90">Notes, guides aur PDFs bilkul FREE — hamari website se download karein:</p>
+                        <p class="text-[11px] font-mono text-emerald-300">pdfdigitalstore.blogspot.com</p>
+                    </div>
+                </div>
+                <a href="https://pdfdigitalstore.blogspot.com" target="_blank" rel="noopener noreferrer"
+                    class="shrink-0 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition-colors">
+                    Free PDF Download →
+                </a>
+            </div>
+
             <!-- Options & Analyze Button (Step 1) -->
             <div id="analysis-step-container" class="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div id="free-tests-counter" class="text-xs text-amber-400 font-medium bg-amber-500/10 px-3 py-2 rounded-lg border border-amber-500/20">
@@ -338,8 +354,41 @@
             <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
                 <button id="close-login-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">&times;</button>
                 <h3 class="text-lg font-bold text-white mb-1">📱 PadhaQ Login</h3>
-                <p class="text-xs text-slate-400 mb-4">Naam + Mobile + OTP se real login — aapka premium aur analytics data secure rahe.</p>
+                <p class="text-xs text-slate-400 mb-4">Username-Password ya Mobile OTP se login — data aur premium account se judta hai.</p>
 
+                <!-- Login method tabs -->
+                <div class="flex gap-2 mb-4 text-xs font-bold">
+                    <button id="login-tab-un" type="button" class="flex-1 py-2 rounded-lg border-b-2 border-indigo-500 text-white">🔑 Username / Password</button>
+                    <button id="login-tab-mob" type="button" class="flex-1 py-2 rounded-lg border-b-2 border-slate-700 text-slate-400">📱 Mobile OTP</button>
+                </div>
+
+                <!-- Panel: Username + Password (Login / Sign Up) -->
+                <div id="login-panel-un">
+                    <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Username</label>
+                    <input type="text" id="login-username-input" maxlength="20" placeholder="Jaise: rohit7739" autocomplete="username"
+                        class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3">
+                    <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Password</label>
+                    <input type="password" id="login-password-input" maxlength="30" placeholder="Kam se kam 6 akshar" autocomplete="current-password"
+                        class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3">
+                    <div id="signup-extra" class="hidden">
+                        <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Aapka Naam</label>
+                        <input type="text" id="signup-name-input" maxlength="30" placeholder="Jaise: Rohit Kumar"
+                            class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3">
+                        <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Mobile Number</label>
+                        <input type="tel" id="signup-mobile-input" inputmode="numeric" maxlength="10" placeholder="10 digit mobile number"
+                            class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 font-mono tracking-wider mb-3">
+                    </div>
+                    <button id="pw-action-btn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm">
+                        Login Karein →
+                    </button>
+                    <button id="signup-toggle" type="button" class="w-full text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold mt-3">
+                        Naya account banayein? Sign Up karein
+                    </button>
+                    <p class="text-[10px] text-slate-500 mt-2 text-center">Data Username + Mobile se save hota hai. Premium login karte hi wapas milta hai.</p>
+                </div>
+
+                <!-- Panel: Mobile OTP (Step A + Step B) -->
+                <div id="login-panel-mob" class="hidden">
                 <!-- Step A: Phone Number -->
                 <div id="login-step-1">
                     <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Aapka Naam</label>
@@ -386,6 +435,7 @@
                         <button id="change-phone-btn" class="text-slate-400 hover:text-slate-200">← Number change karein</button>
                         <button id="resend-otp-btn" disabled class="text-indigo-400 hover:text-indigo-300 font-semibold disabled:opacity-40 disabled:cursor-not-allowed">OTP Phir Bhejein</button>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -599,7 +649,7 @@
         }
 
         function updateFreeLimitUI() {
-            const remaining = Math.max(0, 3 - freeTestsCount);
+            const remaining = Math.max(0, 3 - ((account && account.freeUsed != null) ? account.freeUsed : freeTestsCount));
             if (isPremiumActive()) {
                 document.getElementById('free-tests-counter').innerHTML = "⭐ Premium Unlimited Active (till " + formatDate(premiumInfo.expiresAt) + ")";
             } else {
@@ -613,10 +663,125 @@
         }
 
         // ================================================================
-        //  MOBILE + OTP LOGIN
+        //  ACCOUNTS: Username+Password + Mobile OTP (server-verified)
+        //  premium + free credits server par — login par wapas milte hain
         // ================================================================
         let otpState = null;      // { phone, name }
         let resendTimerId = null;
+
+        function freeUsedCount() {
+            return (account && account.freeUsed != null) ? account.freeUsed : freeTestsCount;
+        }
+
+        function applyServerUser(u, token) {
+            account = {
+                token: token || (account && account.token) || '',
+                username: u.username || '',
+                name: u.name || 'Student',
+                phone: u.mobile || u.phone || '',
+                mobile: u.mobile || u.phone || '',
+                avatar: u.avatar || '\u{1F4DA}',
+                freeUsed: u.freeUsed || 0,
+                premium: u.premium || null,
+                loginAt: Date.now(),
+            };
+            localStorage.setItem('ai_quiz_account', JSON.stringify(account));
+            if (account.premium && account.premium.expiresAt && account.premium.expiresAt > Date.now()) {
+                premiumInfo = {
+                    phone: account.phone,
+                    plan: account.premium.plan,
+                    planLabel: account.premium.planLabel,
+                    amount: parseInt(account.premium.plan, 10) || 0,
+                    paymentId: account.premium.paymentId,
+                    paidAt: account.premium.activatedAt,
+                    expiresAt: account.premium.expiresAt,
+                };
+                localStorage.setItem('ai_quiz_premium', JSON.stringify(premiumInfo));
+            }
+            updateAuthUI();
+            updateFreeLimitUI();
+        }
+
+        async function syncMe() {
+            if (!account || !account.token) return;
+            try {
+                const r = await fetch(apiUrl('/api/me'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: account.token }) });
+                const d = await r.json();
+                if (r.ok && d.ok && d.user) applyServerUser(d.user, account.token);
+                else if (r.status === 401) {
+                    account = null;
+                    localStorage.removeItem('ai_quiz_account');
+                    updateAuthUI();
+                    updateFreeLimitUI();
+                }
+            } catch (e) { /* offline — local data chalega */ }
+        }
+
+        // ----- Login modal: tabs + Username/Password (Login / Sign Up) -----
+        const loginTabUn = document.getElementById('login-tab-un');
+        const loginTabMob = document.getElementById('login-tab-mob');
+        const loginPanelUn = document.getElementById('login-panel-un');
+        const loginPanelMob = document.getElementById('login-panel-mob');
+        let signupMode = false;
+
+        function showLoginTab(which) {
+            const un = which === 'un';
+            loginPanelUn.classList.toggle('hidden', !un);
+            loginPanelMob.classList.toggle('hidden', un);
+            loginTabUn.classList.toggle('border-indigo-500', un);
+            loginTabUn.classList.toggle('text-white', un);
+            loginTabUn.classList.toggle('text-slate-400', !un);
+            loginTabMob.classList.toggle('border-indigo-500', !un);
+            loginTabMob.classList.toggle('text-white', !un);
+            loginTabMob.classList.toggle('text-slate-400', un);
+        }
+        loginTabUn.addEventListener('click', () => showLoginTab('un'));
+        loginTabMob.addEventListener('click', () => showLoginTab('mob'));
+
+        function setSignupMode(on) {
+            signupMode = on;
+            document.getElementById('signup-extra').classList.toggle('hidden', !on);
+            document.getElementById('pw-action-btn').textContent = on ? 'Account Banayein \u{1F389}' : 'Login Karein →';
+            document.getElementById('signup-toggle').textContent = on ? '← Pehle se account hai? Login karein' : 'Naya account banayein? Sign Up karein';
+        }
+        document.getElementById('signup-toggle').addEventListener('click', () => setSignupMode(!signupMode));
+        document.getElementById('signup-mobile-input').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+        });
+
+        document.getElementById('pw-action-btn').addEventListener('click', async () => {
+            const username = document.getElementById('login-username-input').value.trim().toLowerCase();
+            const password = document.getElementById('login-password-input').value;
+            const btn = document.getElementById('pw-action-btn');
+            btn.disabled = true;
+            try {
+                let r;
+                if (signupMode) {
+                    const name = document.getElementById('signup-name-input').value.trim();
+                    const mobile = document.getElementById('signup-mobile-input').value.trim();
+                    r = await fetch(apiUrl('/api/register'), {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password, name, mobile }),
+                    });
+                } else {
+                    r = await fetch(apiUrl('/api/login'), {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password }),
+                    });
+                }
+                const data = await r.json();
+                if (!r.ok || !data.ok) throw new Error((data && data.error) || 'Login nahi hua');
+                applyServerUser(data.user, data.token);
+                const wasPremiumOpen = !premiumModal.classList.contains('hidden');
+                closeLoginModalFn();
+                showToast('Login successful! \u{1F389} ' + account.name);
+                if (wasPremiumOpen) refreshPremiumLoginBanner();
+                openProfileModal();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+            btn.disabled = false;
+        });
 
         loginLogoutBtn.addEventListener('click', () => {
             if (account) {
@@ -627,6 +792,10 @@
         });
 
         function openLoginModal() {
+            setSignupMode(false);
+            showLoginTab('un');
+            document.getElementById('login-username-input').value = '';
+            document.getElementById('login-password-input').value = '';
             loginStep1.classList.remove('hidden');
             loginStep2.classList.add('hidden');
             loginNameInput.value = '';
@@ -757,11 +926,9 @@
                 });
                 const data = await r.json();
                 if (!r.ok || !data.ok) throw new Error((data && data.error) || 'Galat OTP. Dobara try karein.');
-                account = { phone: data.user.phone, name: data.user.name, avatar: data.user.avatar || '📚', token: data.token, loginAt: Date.now() };
-                localStorage.setItem('ai_quiz_account', JSON.stringify(account));
+                applyServerUser(data.user, data.token);
                 const wasPremiumOpen = !premiumModal.classList.contains('hidden');
                 closeLoginModalFn();
-                updateAuthUI();
                 showToast('Login successful! 🎉 ' + account.name);
                 if (wasPremiumOpen) refreshPremiumLoginBanner();
                 openProfileModal();
@@ -797,7 +964,7 @@
                 await fetch(apiUrl('/api/save-profile'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: account.phone, token: account.token, name: patch.name || account.name, avatar: patch.avatar || account.avatar }),
+                    body: JSON.stringify({ token: account.token, name: patch.name || account.name, avatar: patch.avatar || account.avatar }),
                 });
             } catch (e) { /* offline: local save chalega */ }
         }
@@ -829,7 +996,11 @@
             if (confirm('Kya aap logout karna chahte hain?')) {
                 account = null;
                 otpState = null;
+                premiumInfo = null;
+                freeTestsCount = 0;
                 localStorage.removeItem('ai_quiz_account');
+                localStorage.removeItem('ai_quiz_premium');
+                localStorage.removeItem('ai_quiz_free_used');
                 profileModal.classList.add('hidden');
                 updateAuthUI();
                 updateFreeLimitUI();
@@ -1006,7 +1177,7 @@
             .then(data => {
                 payVerifying = false;
                 if (data && data.verified) {
-                    activatePremium(resp);
+                    activatePremium(resp, data);
                 } else {
                     setPayBusy(false);
                     if (payStatusEl) payStatusEl.textContent = '❌ Payment verify NAHI hui.';
@@ -1020,12 +1191,11 @@
             });
         }
 
-        function activatePremium(resp) {
+        function activatePremium(resp, serverData) {
             const val = getSelectedPlan();
             const plan = PLANS[val];
             const now = new Date();
-            const exp = new Date();
-            exp.setMonth(exp.getMonth() + plan.months);
+            const expMs = (serverData && serverData.expiresAt) || (() => { const e = new Date(); e.setMonth(e.getMonth() + plan.months); return e.getTime(); })();
 
             premiumInfo = {
                 phone: account ? account.phone : '',
@@ -1035,9 +1205,13 @@
                 paymentId: resp.razorpay_payment_id,
                 orderId: resp.razorpay_order_id,
                 paidAt: now.toISOString(),
-                expiresAt: exp.getTime(),
+                expiresAt: expMs,
             };
             localStorage.setItem('ai_quiz_premium', JSON.stringify(premiumInfo));
+            if (account) {
+                account.premium = { plan: val, planLabel: plan.label, paymentId: resp.razorpay_payment_id, activatedAt: now.getTime(), expiresAt: premiumInfo.expiresAt };
+                localStorage.setItem('ai_quiz_account', JSON.stringify(account));
+            }
             let history = [];
             try { history = JSON.parse(localStorage.getItem('ai_quiz_payments') || '[]'); } catch (e) {}
             history.unshift(premiumInfo);
@@ -1200,7 +1374,12 @@
         }
 
         analyzeBtn.addEventListener('click', async function () {
-            if (!isPremiumActive() && freeTestsCount >= 3) {
+            if (!account || !account.token) {
+                showToast('Quiz ke liye pehle login karein — Username-Password ya Mobile OTP.', 'error');
+                openLoginModal();
+                return;
+            }
+            if (!isPremiumActive() && freeUsedCount() >= 3) {
                 openPremiumModal();
                 showToast("Aapke 3 free tests poore ho chuke hain. Unlimited ke liye Premium lein.", "error");
                 return;
@@ -1258,6 +1437,42 @@
                 showToast("AI ke liye Gemini API key set nahi hai — quiz-app/config.json me 'geminiApiKey' daalein.", "error");
                 return;
             }
+            if (!account || !account.token) {
+                showToast('Test ke liye pehle login karein.', 'error');
+                openLoginModal();
+                return;
+            }
+            if (!isPremiumActive() && freeUsedCount() >= 3) {
+                openPremiumModal();
+                showToast('Aapke 3 free tests poore ho gaye. Unlimited ke liye Premium lein.', 'error');
+                return;
+            }
+            // SERVER credit gate — 3 free ke baad bina premium ke quiz IMPOSSIBLE
+            try {
+                const cr = await fetch(apiUrl('/api/use-credit'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: account.token }),
+                });
+                const cd = await cr.json();
+                if (cd && cd.user) applyServerUser(cd.user, account.token);
+                if (!cr.ok || !cd.ok) {
+                    loadingSection.classList.add('hidden');
+                    uploadSection.classList.remove('hidden');
+                    if (cd && cd.reason === 'no_credits') {
+                        openPremiumModal();
+                        showToast('Aapke 3 free tests poore ho gaye. Unlimited ke liye Premium lein.', 'error');
+                    } else {
+                        showToast((cd && cd.error) || 'Credit check nahi hua.', 'error');
+                    }
+                    return;
+                }
+            } catch (e2) {
+                loadingSection.classList.add('hidden');
+                uploadSection.classList.remove('hidden');
+                showToast('Server se connect nahi hua — free tests ke liye login zaroori hai.', 'error');
+                return;
+            }
             activeChapterName = selected.join(', ');
             const numQ = parseInt(document.getElementById('num-questions').value, 10);
 
@@ -1296,11 +1511,7 @@
             renderQuiz();
             quizSection.classList.remove('hidden');
 
-            if (!isPremiumActive()) {
-                freeTestsCount++;
-                localStorage.setItem('ai_quiz_free_used', freeTestsCount);
-                updateFreeLimitUI();
-            }
+            updateFreeLimitUI();
         });
 
         function renderQuiz() {
@@ -1408,6 +1619,7 @@
         updateAuthUI();
         updateFreeLimitUI();
         loadAppConfig();
+        syncMe();
 
         // Server se config lao (Gemini key + Razorpay status).
         // Server na ho toh upar ke fallback constants use hote hain.

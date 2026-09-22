@@ -165,10 +165,102 @@ app.post('/api/verify-payment', (req, res) => {
   res.json({ verified: true, paymentId: razorpay_payment_id, planLabel: (PLANS[planKey] || {}).label || '' });
 });
 
+// ================================================================
+//  LOGIN: Naam + Mobile + OTP (server-side REAL verification)
+//  - OTP server par generate + SHA-256 hash + 5 min expiry + attempts limit
+//  - users data/users.json me (name + avatar + tokenHash) save hote hain
+//  - PRODUCTION SMS ke liye sendOtpSms() me MSG91/Twilio/Fast2SMS lagayein
+// ================================================================
+const USERS_PATH = path.join(DATA_DIR, 'users.json');
+const otpStore = new Map(); // phone -> { hash, exp, attempts, count, windowExp, name }
+
+function loadUsers() {
+  try { return JSON.parse(fs.readFileSync(USERS_PATH, 'utf8')) || {}; } catch (e) { return {}; }
+}
+function saveUsers(u) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(USERS_PATH, JSON.stringify(u, null, 2));
+}
+function sha256(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
+
+function sendOtpSms(phone, code) {
+  // PRODUCTION: yahan real SMS gateway call karein (MSG91 / Twilio / Fast2SMS).
+  // Abhi demo mode: OTP response me 'demoOtp' milta hai, app use "Demo SMS" box me dikhata hai.
+  return { demoOtp: code };
+}
+
+app.post('/api/send-otp', (req, res) => {
+  const b = req.body || {};
+  const phone = String(b.phone || '').replace(/\D/g, '');
+  const name = String(b.name || '').trim().slice(0, 30);
+  if (!/^[6-9]\d{9}$/.test(phone)) return res.status(400).json({ ok: false, error: 'Valid 10-digit Indian mobile number daalein.' });
+  if (name.length < 2) return res.status(400).json({ ok: false, error: 'Naam likhna zaroori hai (kam se kam 2 akshar).' });
+
+  const now = Date.now();
+  let rec = otpStore.get(phone);
+  if (rec && rec.windowExp > now && rec.count >= 5) {
+    return res.status(429).json({ ok: false, error: 'Bahut zyada OTP requests. 10 minute baad try karein.' });
+  }
+  if (!rec || rec.windowExp <= now) rec = { count: 0, windowExp: now + 10 * 60 * 1000 };
+  rec.count++;
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  rec.hash = sha256(code);
+  rec.exp = now + 5 * 60 * 1000;
+  rec.attempts = 0;
+  rec.name = name;
+  otpStore.set(phone, rec);
+
+  const users = loadUsers();
+  if (!users[phone]) users[phone] = { name, avatar: '\u{1F4DA}', createdAt: new Date().toISOString() };
+  else users[phone].name = name;
+  saveUsers(users);
+
+  const sms = sendOtpSms(phone, code);
+  res.json({ ok: true, demoOtp: sms.demoOtp });
+});
+
+app.post('/api/verify-otp', (req, res) => {
+  const b = req.body || {};
+  const phone = String(b.phone || '').replace(/\D/g, '');
+  const otp = String(b.otp || '').replace(/\D/g, '');
+  const rec = otpStore.get(phone);
+  if (!rec) return res.status(400).json({ ok: false, error: 'Pehle OTP bhejein.' });
+  if (Date.now() > rec.exp) { otpStore.delete(phone); return res.status(400).json({ ok: false, error: 'OTP expire ho gaya. Naya OTP bhejein.' }); }
+  rec.attempts++;
+  if (rec.attempts > 5) { otpStore.delete(phone); return res.status(429).json({ ok: false, error: 'Bahut zyada galat attempts. Naya OTP bhejein.' }); }
+  if (sha256(otp) !== rec.hash) return res.status(400).json({ ok: false, error: 'Galat OTP. Dobara try karein.' });
+
+  otpStore.delete(phone);
+  const users = loadUsers();
+  const u = users[phone] || { name: rec.name || 'Student', avatar: '\u{1F4DA}', createdAt: new Date().toISOString() };
+  if (rec.name) u.name = rec.name;
+  const token = crypto.randomBytes(24).toString('hex');
+  u.tokenHash = sha256(token);
+  u.lastLogin = new Date().toISOString();
+  users[phone] = u;
+  saveUsers(users);
+  res.json({ ok: true, token, user: { phone, name: u.name, avatar: u.avatar || '\u{1F4DA}' } });
+});
+
+app.post('/api/save-profile', (req, res) => {
+  const b = req.body || {};
+  const phone = String(b.phone || '').replace(/\D/g, '');
+  const users = loadUsers();
+  const u = users[phone];
+  if (!u || !b.token || sha256(String(b.token)) !== u.tokenHash) {
+    return res.status(401).json({ ok: false, error: 'Login valid nahi hai. Dobara login karein.' });
+  }
+  if (typeof b.name === 'string' && b.name.trim().length >= 2) u.name = b.name.trim().slice(0, 30);
+  if (typeof b.avatar === 'string' && b.avatar.length <= 8) u.avatar = b.avatar;
+  users[phone] = u;
+  saveUsers(users);
+  res.json({ ok: true, user: { phone, name: u.name, avatar: u.avatar } });
+});
+
 // ---------- start ----------
 if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log('AI Quiz server running on port ' + PORT);
+    console.log('PadhaQ server running on port ' + PORT);
     const cfg = loadConfig();
     console.log('Razorpay ready: ' + (!!(cfg.razorpayKeyId && cfg.razorpayKeySecret)));
     console.log('Gemini key set: ' + (!!cfg.geminiApiKey));

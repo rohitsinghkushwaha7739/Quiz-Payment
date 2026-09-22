@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Notes & PDF Test Generator - Developed by Rohit</title>
+    <title>PadhaQ - AI Notes & PDF Test | Developed by Rohit</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
@@ -18,6 +18,16 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .otp-box { width: 2.6rem; height: 3rem; }
+        @keyframes padhaq-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        @keyframes padhaq-bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px) scale(1.08); } }
+        @keyframes padhaq-swing { 0%,100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+        @keyframes padhaq-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+        .anim-float { animation: padhaq-float 2.4s ease-in-out infinite; }
+        .anim-bounce { animation: padhaq-bounce 1.6s ease-in-out infinite; }
+        .anim-swing { animation: padhaq-swing 2s ease-in-out infinite; }
+        .anim-pulse { animation: padhaq-pulse 1.8s ease-in-out infinite; }
+        .avatar-opt { cursor: pointer; line-height: 1.6; }
+        .avatar-opt.selected { border-color: #818cf8 !important; box-shadow: 0 0 0 2px #6366f1; background: #312e81; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-slate-100 min-h-full flex flex-col antialiased">
@@ -32,7 +42,7 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">AI Notes & PDF Test</h1>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">PadhaQ</h1>
                     <p class="text-[10px] text-slate-400">Developed by Rohit</p>
                 </div>
             </div>
@@ -45,6 +55,7 @@
                     ⭐ Premium
                 </button>
                 <div id="user-profile-badge" class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+                    <span id="header-avatar" class="hidden text-lg leading-none anim-float">📚</span>
                     <span id="user-email-display" class="text-slate-300 font-medium">Guest</span>
                     <button id="login-logout-btn" class="text-indigo-400 hover:text-indigo-300 font-bold">Login</button>
                 </div>
@@ -122,6 +133,8 @@
                             <option value="5">5 Sawaal</option>
                             <option value="10" selected>10 Sawaal</option>
                             <option value="25">25 Sawaal</option>
+                            <option value="50">50 Sawaal</option>
+                            <option value="100">100 Sawaal</option>
                         </select>
                     </div>
                     <button id="generate-test-btn" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-emerald-600 text-white font-medium shadow-lg hover:bg-emerald-500 transition-all">
@@ -324,11 +337,14 @@
         <div id="login-modal" class="hidden fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
                 <button id="close-login-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">&times;</button>
-                <h3 class="text-lg font-bold text-white mb-1">📱 Mobile Number Login</h3>
-                <p class="text-xs text-slate-400 mb-4">OTP se verify karein taaki aapka premium aur analytics data secure rahe.</p>
+                <h3 class="text-lg font-bold text-white mb-1">📱 PadhaQ Login</h3>
+                <p class="text-xs text-slate-400 mb-4">Naam + Mobile + OTP se real login — aapka premium aur analytics data secure rahe.</p>
 
                 <!-- Step A: Phone Number -->
                 <div id="login-step-1">
+                    <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Aapka Naam</label>
+                    <input type="text" id="login-name-input" maxlength="30" placeholder="Jaise: Rohit Kumar"
+                        class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-4">
                     <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Mobile Number</label>
                     <div class="flex items-stretch mb-4">
                         <span class="bg-slate-950 border border-slate-700 border-r-0 rounded-l-lg px-3 flex items-center text-sm text-slate-300 font-semibold">+91</span>
@@ -338,7 +354,7 @@
                     <button id="send-otp-btn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm">
                         OTP Send Karein →
                     </button>
-                    <p class="text-[10px] text-slate-500 mt-3 text-center">Sirf apna number enter karein. 6-digit OTP aapke phone par aayega.</p>
+                    <p class="text-[10px] text-slate-500 mt-3 text-center">Apna naam aur number enter karein. 6-digit OTP se login hoga.</p>
                 </div>
 
                 <!-- Step B: OTP Entry -->
@@ -374,6 +390,43 @@
             </div>
         </div>
 
+        <!-- Profile Modal (Naam + Animated Education Avatars) -->
+        <div id="profile-modal" class="hidden fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
+                <button id="close-profile-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">&times;</button>
+                <h3 class="text-lg font-bold text-white mb-4">👤 Mera Profile</h3>
+                <div class="flex items-center space-x-4 mb-5">
+                    <div id="profile-avatar-big" class="anim-float w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl">📚</div>
+                    <div>
+                        <p id="profile-name-display" class="text-white font-bold">Student</p>
+                        <p id="profile-phone-display" class="text-xs text-slate-400 font-mono">+91 —</p>
+                        <p id="profile-plan-display" class="text-[10px] text-amber-400 font-semibold mt-0.5">Free Plan</p>
+                    </div>
+                </div>
+                <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Naam badlein</label>
+                <div class="flex gap-2 mb-5">
+                    <input type="text" id="profile-name-input" maxlength="30" class="flex-grow bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-2.5">
+                    <button id="save-profile-btn" class="px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">Save</button>
+                </div>
+                <label class="text-[11px] font-bold text-slate-400 block mb-2">🎓 Education Avatar chunein (animated)</label>
+                <div id="avatar-grid" class="grid grid-cols-6 gap-2 mb-5">
+                    <button type="button" data-avatar="📚" class="avatar-opt anim-float text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">📚</button>
+                    <button type="button" data-avatar="🎓" class="avatar-opt anim-bounce text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">🎓</button>
+                    <button type="button" data-avatar="✏️" class="avatar-opt anim-swing text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">✏️</button>
+                    <button type="button" data-avatar="🔬" class="avatar-opt anim-pulse text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">🔬</button>
+                    <button type="button" data-avatar="🎨" class="avatar-opt anim-float text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">🎨</button>
+                    <button type="button" data-avatar="🧮" class="avatar-opt anim-bounce text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">🧮</button>
+                    <button type="button" data-avatar="💡" class="avatar-opt anim-pulse text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">💡</button>
+                    <button type="button" data-avatar="🚀" class="avatar-opt anim-float text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">🚀</button>
+                    <button type="button" data-avatar="📐" class="avatar-opt anim-swing text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">📐</button>
+                    <button type="button" data-avatar="🌍" class="avatar-opt anim-pulse text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">🌍</button>
+                    <button type="button" data-avatar="🧪" class="avatar-opt anim-bounce text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">🧪</button>
+                    <button type="button" data-avatar="🎒" class="avatar-opt anim-swing text-2xl bg-slate-800 border border-slate-700 rounded-xl p-2 hover:border-indigo-500">🎒</button>
+                </div>
+                <button id="profile-logout-btn" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold">Logout</button>
+            </div>
+        </div>
+
     </main>
 
     <script>
@@ -386,7 +439,7 @@
         // ↓↓↓ BLOGGER / standalone file me payment chalane ke liye:
         // quiz-app folder ko render.com par free host karo (README-SETUP.md me steps),
         // phir uska URL yahan daalo, jaise: 'https://quiz-payment.onrender.com'
-        const PAYMENT_SERVER_BASE = '';
+        const PAYMENT_SERVER_BASE = 'https://quiz-payment.onrender.com';   // Remote payment server (Render) — Blogger/file se bhi payment chalega
         let appConfig = { geminiApiKey: '', razorpayReady: false, razorpayKeyId: '', serverOnline: false };
 
         // API calls: same server par ho toh relative, warna remote payment server par
@@ -508,6 +561,7 @@
         const loginStep1 = document.getElementById('login-step-1');
         const loginStep2 = document.getElementById('login-step-2');
         const loginPhoneInput = document.getElementById('login-phone-input');
+        const loginNameInput = document.getElementById('login-name-input');
         const sendOtpBtn = document.getElementById('send-otp-btn');
         const otpPhoneLabel = document.getElementById('otp-phone-label');
         const demoSmsText = document.getElementById('demo-sms-text');
@@ -521,12 +575,16 @@
         //  AUTH UI
         // ================================================================
         function updateAuthUI() {
+            const av = document.getElementById('header-avatar');
             if (account) {
                 const p = account.phone;
-                userEmailDisplay.textContent = '+91 ' + p.slice(0, 5) + ' ' + p.slice(5);
-                loginLogoutBtn.textContent = 'Logout';
+                userEmailDisplay.textContent = (account.name || 'Student') + ' · +91 ' + p.slice(0, 5) + ' ' + p.slice(5);
+                av.textContent = account.avatar || '📚';
+                av.classList.remove('hidden');
+                loginLogoutBtn.textContent = 'Profile';
             } else {
                 userEmailDisplay.textContent = 'Guest';
+                av.classList.add('hidden');
                 loginLogoutBtn.textContent = 'Login';
             }
 
@@ -557,20 +615,12 @@
         // ================================================================
         //  MOBILE + OTP LOGIN
         // ================================================================
-        let otpState = null;      // { phone, code, expiresAt }
+        let otpState = null;      // { phone, name }
         let resendTimerId = null;
 
         loginLogoutBtn.addEventListener('click', () => {
             if (account) {
-                if (confirm('Kya aap logout karna chahte hain?')) {
-                    account = null;
-                    otpState = null;
-                    localStorage.removeItem('ai_quiz_account');
-                    closeLoginModalFn();
-                    updateAuthUI();
-                    updateFreeLimitUI();
-                    showToast('Logout ho gaya.');
-                }
+                openProfileModal();
             } else {
                 openLoginModal();
             }
@@ -579,6 +629,7 @@
         function openLoginModal() {
             loginStep1.classList.remove('hidden');
             loginStep2.classList.add('hidden');
+            loginNameInput.value = '';
             loginPhoneInput.value = '';
             resetOtpBoxes();
             loginModal.classList.remove('hidden');
@@ -599,30 +650,39 @@
             e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
         });
 
-        sendOtpBtn.addEventListener('click', () => {
+        async function requestOtp() {
+            const name = loginNameInput.value.trim();
             const phone = loginPhoneInput.value.trim();
+            if (name.length < 2) { showToast('Apna naam likhein (kam se kam 2 akshar).', 'error'); return; }
             if (!/^[6-9]\d{9}$/.test(phone)) {
                 showToast('Valid 10-digit Indian mobile number enter karein.', 'error');
                 return;
             }
-            const code = String(Math.floor(100000 + Math.random() * 900000));
-            otpState = { phone, code, expiresAt: Date.now() + 2 * 60 * 1000 };
-
-            // ----------------------------------------------------------
-            // PRODUCTION: yahan apna SMS gateway call karein, e.g.
-            //   fetch('https://api.msg91.com/flow/...', { method:'POST', ... })
-            //   ya Firebase Auth: auth.sendPasswordResetCode / signInWithPhoneNumber
-            // Demo file me SMS nahi bheja ja sakta, isliye OTP niche dikhaya jata hai.
-            // ----------------------------------------------------------
-            demoSmsText.textContent = 'AIQUIZ: ' + code + ' aapka verification OTP hai. 2 minute valid hai. Kisi ke saath share na karein.';
-            otpPhoneLabel.textContent = '+91 ' + phone;
-            resetOtpBoxes();
-            loginStep1.classList.add('hidden');
-            loginStep2.classList.remove('hidden');
-            startResendCooldown();
-            showToast('OTP bheja gaya: +91 ' + phone);
-            setTimeout(() => otpBoxes[0].focus(), 100);
-        });
+            sendOtpBtn.disabled = true; sendOtpBtn.textContent = 'OTP bhej rahe hain...';
+            try {
+                const r = await fetch(apiUrl('/api/send-otp'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, name }),
+                });
+                const data = await r.json();
+                if (!r.ok || !data.ok) throw new Error((data && data.error) || 'OTP nahi bheja ja saka');
+                otpState = { phone, name };
+                // PRODUCTION: SMS gateway lagate hi server phone par bhej dega — ye box hat jayega.
+                demoSmsText.textContent = 'PADHAQ: ' + data.demoOtp + ' aapka verification OTP hai. 5 minute valid hai. Kisi ke saath share na karein.';
+                otpPhoneLabel.textContent = '+91 ' + phone;
+                resetOtpBoxes();
+                loginStep1.classList.add('hidden');
+                loginStep2.classList.remove('hidden');
+                startResendCooldown();
+                showToast('OTP bheja gaya: +91 ' + phone);
+                setTimeout(() => otpBoxes[0].focus(), 100);
+            } catch (e) {
+                showToast('OTP send nahi hua: ' + e.message, 'error');
+            }
+            sendOtpBtn.disabled = false; sendOtpBtn.textContent = 'OTP Send Karein →';
+        }
+        sendOtpBtn.addEventListener('click', requestOtp);
 
         function resetOtpBoxes() {
             otpBoxes.forEach(b => b.value = '');
@@ -647,14 +707,7 @@
 
         resendOtpBtn.addEventListener('click', () => {
             if (!otpState) return;
-            const code = String(Math.floor(100000 + Math.random() * 900000));
-            otpState.code = code;
-            otpState.expiresAt = Date.now() + 2 * 60 * 1000;
-            demoSmsText.textContent = 'AIQUIZ: ' + code + ' aapka verification OTP hai. 2 minute valid hai. Kisi ke saath share na karein.';
-            resetOtpBoxes();
-            startResendCooldown();
-            otpBoxes[0].focus();
-            showToast('Naya OTP bheja gaya.');
+            requestOtp();
         });
 
         changePhoneBtn.addEventListener('click', () => {
@@ -691,29 +744,98 @@
 
         verifyOtpBtn.addEventListener('click', verifyOtp);
 
-        function verifyOtp() {
+        async function verifyOtp() {
             if (!otpState) { showToast('Pehle OTP bhejein.', 'error'); return; }
-            if (Date.now() > otpState.expiresAt) {
-                showToast('OTP expire ho gaya. Naya OTP bhejein.', 'error');
-                resetOtpBoxes();
-                return;
-            }
             const entered = otpBoxes.map(b => b.value).join('');
             if (entered.length < 6) { showToast('Poora 6-digit OTP enter karein.', 'error'); return; }
-            if (entered !== otpState.code) {
-                showToast('Galat OTP. Dobara try karein.', 'error');
+            verifyOtpBtn.disabled = true; verifyOtpBtn.textContent = 'Verify ho raha hai...';
+            try {
+                const r = await fetch(apiUrl('/api/verify-otp'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: otpState.phone, otp: entered }),
+                });
+                const data = await r.json();
+                if (!r.ok || !data.ok) throw new Error((data && data.error) || 'Galat OTP. Dobara try karein.');
+                account = { phone: data.user.phone, name: data.user.name, avatar: data.user.avatar || '📚', token: data.token, loginAt: Date.now() };
+                localStorage.setItem('ai_quiz_account', JSON.stringify(account));
+                const wasPremiumOpen = !premiumModal.classList.contains('hidden');
+                closeLoginModalFn();
+                updateAuthUI();
+                showToast('Login successful! 🎉 ' + account.name);
+                if (wasPremiumOpen) refreshPremiumLoginBanner();
+                openProfileModal();
+            } catch (e) {
+                showToast(e.message, 'error');
                 resetOtpBoxes();
                 otpBoxes[0].focus();
-                return;
             }
-            account = { phone: otpState.phone, loginAt: Date.now() };
-            localStorage.setItem('ai_quiz_account', JSON.stringify(account));
-            const wasPremiumOpen = !premiumModal.classList.contains('hidden');
-            closeLoginModalFn();
-            updateAuthUI();
-            showToast('Login successful! 🎉 +91 ' + account.phone);
-            if (wasPremiumOpen) refreshPremiumLoginBanner();
+            verifyOtpBtn.disabled = false; verifyOtpBtn.textContent = 'Verify & Login ✔️';
         }
+
+        // ================================================================
+        //  PROFILE (naam + animated education avatars)
+        // ================================================================
+        const profileModal = document.getElementById('profile-modal');
+
+        function openProfileModal() {
+            if (!account) return;
+            document.getElementById('profile-name-display').textContent = account.name || 'Student';
+            document.getElementById('profile-phone-display').textContent = '+91 ' + account.phone.slice(0, 5) + ' ' + account.phone.slice(5);
+            document.getElementById('profile-name-input').value = account.name || '';
+            document.getElementById('profile-plan-display').textContent =
+                isPremiumActive() ? '⭐ Premium till ' + formatDate(premiumInfo.expiresAt) : '🎁 Free Plan — 3 free tests';
+            document.getElementById('profile-avatar-big').textContent = account.avatar || '📚';
+            document.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b.dataset.avatar === (account.avatar || '📚')));
+            profileModal.classList.remove('hidden');
+        }
+
+        document.getElementById('close-profile-modal').addEventListener('click', () => profileModal.classList.add('hidden'));
+
+        async function saveProfileRemote(patch) {
+            try {
+                await fetch(apiUrl('/api/save-profile'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: account.phone, token: account.token, name: patch.name || account.name, avatar: patch.avatar || account.avatar }),
+                });
+            } catch (e) { /* offline: local save chalega */ }
+        }
+
+        document.querySelectorAll('.avatar-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                account.avatar = btn.dataset.avatar;
+                localStorage.setItem('ai_quiz_account', JSON.stringify(account));
+                document.getElementById('profile-avatar-big').textContent = account.avatar;
+                document.getElementById('header-avatar').textContent = account.avatar;
+                document.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
+                saveProfileRemote({ avatar: account.avatar });
+                showToast('Avatar set! 🎓');
+            });
+        });
+
+        document.getElementById('save-profile-btn').addEventListener('click', () => {
+            const nm = document.getElementById('profile-name-input').value.trim();
+            if (nm.length < 2) { showToast('Naam kam se kam 2 akshar ka rakhein.', 'error'); return; }
+            account.name = nm;
+            localStorage.setItem('ai_quiz_account', JSON.stringify(account));
+            document.getElementById('profile-name-display').textContent = nm;
+            saveProfileRemote({ name: nm });
+            updateAuthUI();
+            showToast('Naam save ho gaya ✅');
+        });
+
+        document.getElementById('profile-logout-btn').addEventListener('click', () => {
+            if (confirm('Kya aap logout karna chahte hain?')) {
+                account = null;
+                otpState = null;
+                localStorage.removeItem('ai_quiz_account');
+                profileModal.classList.add('hidden');
+                updateAuthUI();
+                updateFreeLimitUI();
+                showToast('Logout ho gaya.');
+            }
+        });
 
         // ================================================================
         //  PREMIUM MODAL (Plan → QR Payment → UTR Verify)
@@ -850,7 +972,7 @@
                 order_id: order.orderId,
                 amount: order.amount * 100,
                 currency: order.currency || 'INR',
-                name: 'AI Quiz Notes',
+                name: 'PadhaQ',
                 description: plan.label + ' Plan - Unlimited Tests',
                 prefill: { name: 'Student', contact: '+91' + account.phone },
                 notes: { plan: plan.label, phone: account.phone },
@@ -1137,21 +1259,31 @@
                 return;
             }
             activeChapterName = selected.join(', ');
-            const numQ = document.getElementById('num-questions').value;
+            const numQ = parseInt(document.getElementById('num-questions').value, 10);
 
             uploadSection.classList.add('hidden');
             loadingTitle.textContent = `${numQ} Sawaal taiyar ho rahe hain...`;
             loadingSection.classList.remove('hidden');
-
-            const systemPrompt = `Generate exactly ${numQ} MCQs for chapters: ${activeChapterName}. Respond ONLY in valid JSON format:
-            [{"question": "Q text?", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "Why correct"}]`;
 
             const parts = fileType === 'pdf'
                 ? [{ text: extractedPdfText.slice(0, 15000) }]
                 : [{ text: "Generate MCQs" }, { inlineData: { mimeType: "image/jpeg", data: uploadedFile } }];
 
             try {
-                quizData = await callGemini(systemPrompt, parts);
+                // Bade tests (50/100) AI se chhote batches (max 25) me banwate hain —
+                // response kabhi truncate nahi hota, aur progress bhi dikhta hai (35/100...)
+                const BATCH = 25;
+                const collected = [];
+                while (collected.length < numQ) {
+                    const want = Math.min(BATCH, numQ - collected.length);
+                    loadingTitle.textContent = `${Math.min(collected.length + want, numQ)}/${numQ} Sawaal taiyar ho rahe hain...`;
+                    const systemPrompt = `Generate exactly ${want} NEW MCQs (bilkul alag, koi repeat nahi) for chapters: ${activeChapterName}. Respond ONLY in valid JSON format:
+            [{"question": "Q text?", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "Why correct"}]`;
+                    const batch = await callGemini(systemPrompt, parts);
+                    if (!Array.isArray(batch) || batch.length === 0) throw new Error('Empty AI batch');
+                    collected.push(...batch.slice(0, want));
+                }
+                quizData = collected.slice(0, numQ);
             } catch (err) {
                 showToast("Test generation error. Try again.", "error");
                 loadingSection.classList.add('hidden');

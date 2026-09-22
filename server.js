@@ -37,6 +37,7 @@ function loadConfig() {
     razorpayKeyId: process.env.RAZORPAY_KEY_ID || fileCfg.razorpayKeyId || '',
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || fileCfg.razorpayKeySecret || '',
     geminiApiKey: process.env.GEMINI_API_KEY || fileCfg.geminiApiKey || '',
+    adminKey: process.env.ADMIN_KEY || fileCfg.adminKey || 'PadhaQ@Rohit',
   };
 }
 
@@ -119,7 +120,7 @@ app.post('/api/create-order', async (req, res) => {
 // Step 2: SERVER-SIDE verification (yahi asli "payment check" hai)
 // Razorpay signature = HMAC-SHA256(order_id + "|" + payment_id, key_secret)
 // Fake UTR / ghar se bana signature yahan KABHI accept nahi hota.
-app.post('/api/verify-payment', (req, res) => {
+app.post('/api/verify-payment', async (req, res) => {
   const cfg = loadConfig();
   if (!cfg.razorpayKeySecret) {
     return res.status(503).json({ error: 'Setup pending: Razorpay key_secret missing.' });
@@ -151,15 +152,44 @@ app.post('/api/verify-payment', (req, res) => {
   }
 
   const planKey = String(b.plan || '');
-  payments.unshift({
+
+  // Razorpay se ASLI payment details fetch (UTR, method, VPA, contact) — admin panel ke liye
+  let payDetails = { utr: '', method: '', vpa: '', payerContact: '', payerEmail: '' };
+  try {
+    const pr = await fetch('https://api.razorpay.com/v1/payments/' + encodeURIComponent(razorpay_payment_id), {
+      headers: { Authorization: 'Basic ' + Buffer.from(cfg.razorpayKeyId + ':' + cfg.razorpayKeySecret).toString('base64') },
+    });
+    if (pr.ok) {
+      const pj = await pr.json();
+      payDetails = {
+        utr: (pj.acquirer_data && (pj.acquirer_data.bank_transaction_id || pj.acquirer_data.rrn)) || '',
+        method: pj.method || '',
+        vpa: pj.vpa || '',
+        payerContact: pj.contact || '',
+        payerEmail: pj.email || '',
+      };
+    }
+  } catch (e) { /* network issue — details baad me mil jayengi */ }
+
+  const record = {
     razorpay_order_id,
     razorpay_payment_id,
     razorpay_signature,
     plan: planKey,
     planLabel: (PLANS[planKey] || {}).label || '',
+    amount: Number(planKey) || 0,
     phone: String(b.phone || '').replace(/\D/g, ''),
+    name: String(b.name || ''),
+    username: String(b.username || ''),
+    whatsapp: String(b.phone || '').replace(/\D/g, ''),
+    utr: payDetails.utr,
+    method: payDetails.method,
+    vpa: payDetails.vpa,
+    payerContact: payDetails.payerContact,
+    payerEmail: payDetails.payerEmail,
     verifiedAt: new Date().toISOString(),
-  });
+  };
+  payments.unshift(record);
   savePayments(payments);
 
   // PREMIUM account (username/mobile) se bandho — login karte hi wapas milega
@@ -175,6 +205,8 @@ app.post('/api/verify-payment', (req, res) => {
       activatedAt: Date.now(),
       expiresAt: expMs,
     };
+    pu.payments = pu.payments || [];
+    pu.payments.unshift(record);
     saveDB(db);
   }
 
@@ -376,6 +408,29 @@ app.post('/api/use-credit', (req, res) => {
   u.freeUsed = used + 1;
   saveDB(db);
   res.json({ ok: true, remaining: 3 - u.freeUsed, user: publicUser(u) });
+});
+
+// ---------- ADMIN: payments list (naam, WhatsApp, UTR, Payment ID) ----------
+app.post('/api/admin/payments', (req, res) => {
+  const cfg = loadConfig();
+  const key = String((req.body || {}).adminKey || '');
+  const want = String(cfg.adminKey || 'PadhaQ@Rohit');
+  let okKey = false;
+  try { okKey = key.length === want.length && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(want)); } catch (e) { okKey = false; }
+  if (!okKey) return res.status(401).json({ ok: false, error: 'Admin key galat hai.' });
+
+  const db = loadDB();
+  const rows = [];
+  Object.values(db.users).forEach(u => (u.payments || []).forEach(p => rows.push({
+    ...p,
+    name: p.name || u.name, username: p.username || u.username,
+    whatsapp: p.whatsapp || u.mobile, phone: p.phone || u.mobile,
+  })));
+  const seen = new Set(rows.map(r => r.razorpay_payment_id));
+  loadPayments().forEach(p => { if (!seen.has(p.razorpay_payment_id)) rows.push(p); });
+  rows.sort((a, b) => String(b.verifiedAt || '').localeCompare(String(a.verifiedAt || '')));
+  const totalAmount = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  res.json({ ok: true, rows, count: rows.length, totalAmount });
 });
 
 // ---------- start ----------

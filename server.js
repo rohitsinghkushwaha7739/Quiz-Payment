@@ -1,16 +1,13 @@
 /**
- * AI Quiz Notes — Payment + Config Server
+ * PadhaQ backend — ₹49 / 12-month Pro, account-gated Razorpay payments.
  *
- * Kya karta hai:
- *  1. App serve karta hai (public/index.html)
- *  2. /api/create-order    -> Razorpay order banata hai
- *  3. /api/verify-payment  -> SERVER-SIDE HMAC signature verify karta hai
- *     (yahi wahi step hai jahan koi bhi fake UTR / fake signature kabhi pass nahi hota)
- *  4. /api/app-config      -> Gemini key + Razorpay status app ko bhejta hai
+ * /api/create-order: server-priced order for signed-in user
+ * /api/verify-payment: signature + Razorpay order/amount/captured status
+ * /api/razorpay/webhook: optional signed payment.captured safety net
+ * /api/admin/payments: admin-key-protected, verified payment ledger
  *
- * Keys: quiz-app/config.json me daalein (ya environment variables me).
- *   config.json:  { "razorpayKeyId": "rzp_test_...", "razorpayKeySecret": "...", "geminiApiKey": "AIza..." }
- *   env:          RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, GEMINI_API_KEY
+ * Configure secrets in Render Environment (not the public Blogger XML).
+ * See README-SETUP.md for deployment and persistent storage requirements.
  */
 const express = require('express');
 const crypto = require('crypto');
@@ -20,14 +17,15 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CONFIG_PATH = path.join(__dirname, 'config.json');
-const DATA_DIR = path.join(__dirname, 'data');
+// Mount a persistent disk here on Render (or use a durable database).
+// Files inside a normal free web-service filesystem can disappear on deploy/restart.
+const DATA_DIR = process.env.PADHAQ_DATA_DIR || path.join(__dirname, 'data');
 const PAYMENTS_PATH = path.join(DATA_DIR, 'payments.json');
 
-const PLANS = {
-  '49':  { label: '1 Year',   months: 12, amount: 49 },
-  '199': { label: '6 Months', months: 6,  amount: 199 },
-  '299': { label: '1 Year',   months: 12, amount: 299 },
-};
+// One server-authoritative price and term. Never accept a client's amount/expiry.
+const PLANS = Object.freeze({
+  '49': Object.freeze({ label: '1 Year', months: 12, amount: 49 }),
+});
 
 // ---------- config + storage helpers ----------
 function loadConfig() {
@@ -37,16 +35,42 @@ function loadConfig() {
     razorpayKeyId: process.env.RAZORPAY_KEY_ID || fileCfg.razorpayKeyId || '',
     razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || fileCfg.razorpayKeySecret || '',
     geminiApiKey: process.env.GEMINI_API_KEY || fileCfg.geminiApiKey || '',
-    adminKey: process.env.ADMIN_KEY || fileCfg.adminKey || 'PadhaQ@Rohit',
+    // Never put this in the public Blogger XML or a public GitHub repository.
+    adminKey: process.env.PADHAQ_ADMIN_KEY || process.env.ADMIN_KEY || '',
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
   };
 }
 
-function loadPayments() {
-  try { return JSON.parse(fs.readFileSync(PAYMENTS_PATH, 'utf8')) || []; } catch (e) { return []; }
+function readJson(file, fallback) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
+  catch (e) {
+    if (e.code === 'ENOENT') return fallback;
+    throw e; // A corrupt database must NOT silently turn into an empty one.
+  }
 }
-function savePayments(list) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(PAYMENTS_PATH, JSON.stringify(list, null, 2));
+function saveJson(file, value) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + '.' + process.pid + '.' + crypto.randomBytes(4).toString('hex') + '.tmp';
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(value, null, 2), { mode: 0o600 });
+    fs.renameSync(tmp, file);
+  } finally {
+    try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch (_) { /* cleanup */ }
+  }
+}
+function loadPayments() {
+  const records = readJson(PAYMENTS_PATH, []);
+  if (!Array.isArray(records)) throw new Error('payments.json must be an array');
+  return records;
+}
+function savePayments(list) { saveJson(PAYMENTS_PATH, list); }
+
+function liveSetupError(cfg) {
+  if (!/^rzp_live_/.test(cfg.razorpayKeyId)) return '';
+  if (!process.env.PADHAQ_DATA_DIR) return 'Live payment ke liye mounted persistent disk aur PADHAQ_DATA_DIR set karein.';
+  if (!cfg.adminKey || cfg.adminKey.length < 16) return 'Live payment ke liye 16+ character PADHAQ_ADMIN_KEY set karein.';
+  if (!cfg.webhookSecret || cfg.webhookSecret.length < 16) return 'Live payment ke liye RAZORPAY_WEBHOOK_SECRET set karein aur webhook configure karein.';
+  return '';
 }
 
 // CORS: taaki Blogger (blogspot.com) ya koi bhi domain se bhi payment server
@@ -59,12 +83,104 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
+// Optional safety net: Razorpay calls this even if a paying customer closes
+// the browser before the Checkout success handler can call /api/verify-payment.
+// Configure a webhook for payment.captured and set RAZORPAY_WEBHOOK_SECRET.
+// The HMAC must use the RAW body bytes (before express.json middleware).
+app.post('/api/razorpay/webhook', express.raw({ type: 'application/json', limit: '128kb' }), async (req, res) => {
+  const cfg = loadConfig();
+  if (!cfg.webhookSecret || cfg.webhookSecret.length < 16) {
+    return res.status(503).json({ ok: false, error: 'Webhook secret not configured.' });
+  }
+  const signature = String(req.get('X-Razorpay-Signature') || '');
+  if (!Buffer.isBuffer(req.body) || !/^[a-fA-F0-9]{64}$/.test(signature)) {
+    return res.status(400).json({ ok: false, error: 'Invalid webhook payload/signature.' });
+  }
+  const expected = crypto.createHmac('sha256', cfg.webhookSecret).update(req.body).digest('hex');
+  if (!sameSecret(expected, signature.toLowerCase())) {
+    return res.status(401).json({ ok: false, error: 'Invalid webhook signature.' });
+  }
+  let event;
+  try { event = JSON.parse(req.body.toString('utf8')); }
+  catch (e) { return res.status(400).json({ ok: false, error: 'Invalid JSON.' }); }
+  if (event.event !== 'payment.captured') return res.json({ ok: true, ignored: true });
+  const entity = event.payload && event.payload.payment && event.payload.payment.entity;
+  const orderId = String((entity && entity.order_id) || '');
+  const paymentId = String((entity && entity.id) || '');
+  if (!/^order_[a-zA-Z0-9]+$/.test(orderId) || !/^pay_[a-zA-Z0-9]+$/.test(paymentId)) {
+    return res.status(400).json({ ok: false, error: 'Payment IDs missing.' });
+  }
+  try {
+    const [order, payment] = await Promise.all([
+      getRazorpayEntity(cfg, 'orders', orderId),
+      getRazorpayEntity(cfg, 'payments', paymentId),
+    ]);
+    const notes = order.notes || {};
+    const plan = PLANS['49'];
+    const db = loadDB();
+    const phone = String(notes.phone || '');
+    const user = findUserByMobile(db, phone);
+    if (!user || String(notes.username) !== String(user.username) ||
+        String(notes.plan) !== '49' || String(notes.planMonths) !== '12' ||
+        order.id !== orderId || !String(order.receipt || '').startsWith('padhaq_') ||
+        Number(order.amount) !== plan.amount * 100 || order.currency !== 'INR' ||
+        payment.id !== paymentId || payment.order_id !== orderId ||
+        Number(payment.amount) !== plan.amount * 100 || payment.currency !== 'INR' ||
+        payment.status !== 'captured') {
+      // An invalid order should not be silently credited to somebody else.
+      console.warn('Ignored webhook: order/payment not annual or account mismatch', orderId);
+      return res.status(409).json({ ok: false, error: 'Order/account mismatch.' });
+    }
+    if (verifyingUsers.has(user.username)) {
+      return res.status(503).json({ ok: false, error: 'Processing; retry webhook.' });
+    }
+    verifyingUsers.add(user.username);
+    try {
+      // Re-read after any network delay. In this process, writes below are sync.
+      const currentDb = loadDB();
+      const currentUser = findUserByMobile(currentDb, phone);
+      if (!currentUser || currentUser.username !== user.username) {
+        return res.status(409).json({ ok: false, error: 'Account changed.' });
+      }
+      const list = loadPayments();
+      const prior = list.find(p => p.razorpay_payment_id === paymentId || p.razorpay_order_id === orderId);
+      if (prior) {
+        if (prior.razorpay_payment_id !== paymentId || prior.razorpay_order_id !== orderId ||
+            prior.username !== user.username || prior.phone !== phone ||
+            prior.planLabel !== plan.label || !prior.expiresAt) {
+          return res.status(409).json({ ok: false, error: 'Payment already claimed by another account/plan.' });
+        }
+        activateUserFromRecord(currentUser, prior, currentDb);
+        return res.json({ ok: true, duplicate: true });
+      }
+      const activatedAt = Date.now();
+      const periodStart = Math.max(activatedAt, Number(currentUser.premium && currentUser.premium.expiresAt) || 0);
+      const record = {
+        razorpay_order_id: orderId, razorpay_payment_id: paymentId,
+        plan: '49', planLabel: plan.label, amount: plan.amount, currency: 'INR',
+        phone, whatsapp: phone, username: currentUser.username, name: currentUser.name,
+        activatedAt, expiresAt: oneCalendarYearFrom(periodStart),
+        verifiedAt: new Date(activatedAt).toISOString(),
+      };
+      list.unshift(record);
+      savePayments(list);
+      activateUserFromRecord(currentUser, record, currentDb);
+      return res.json({ ok: true });
+    } finally {
+      verifyingUsers.delete(user.username);
+    }
+  } catch (e) {
+    console.error('Webhook processing error:', e.message);
+    return res.status(503).json({ ok: false, error: 'Webhook not saved; retry.' });
+  }
+});
+
+app.use(express.json({ limit: '32kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------- routes ----------
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, ts: Date.now() });
+  res.json({ ok: true, version: '49-year-v2', ts: Date.now() });
 });
 
 // App ko batata hai ki keys set hain ya nahi (UI warning ke liye)
@@ -72,145 +188,246 @@ app.get('/api/app-config', (req, res) => {
   const cfg = loadConfig();
   res.json({
     geminiApiKey: cfg.geminiApiKey || '',
-    razorpayReady: !!(cfg.razorpayKeyId && cfg.razorpayKeySecret),
+    razorpayReady: !!(cfg.razorpayKeyId && cfg.razorpayKeySecret && !liveSetupError(cfg)),
+    setupMessage: liveSetupError(cfg),
+    demoOtpEnabled: !/^rzp_live_/.test(cfg.razorpayKeyId),
     razorpayKeyId: /^rzp_(test|live)_/.test(cfg.razorpayKeyId) ? cfg.razorpayKeyId : '',
   });
 });
 
-// Step 1: Razorpay order banao (amount hamesha SERVER side fix hota hai)
+// Only server-generated and server-verified orders can activate Pro.
+function sameSecret(a, b) {
+  const x = Buffer.from(String(a || ''));
+  const y = Buffer.from(String(b || ''));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
+function oneCalendarYearFrom(ms) {
+  const end = new Date(ms);
+  end.setUTCFullYear(end.getUTCFullYear() + 1);
+  return end.getTime();
+}
+function activateUserFromRecord(user, record, db) {
+  // Retrying an older payment must never shorten a later renewal.
+  if (user.premium && Number(user.premium.expiresAt) >= Number(record.expiresAt)) return;
+  user.premium = {
+    plan: record.plan,
+    planLabel: record.planLabel,
+    paymentId: record.razorpay_payment_id,
+    activatedAt: record.activatedAt,
+    expiresAt: record.expiresAt,
+  };
+  saveDB(db);
+}
+function verifiedResponse(record, user, duplicate = false) {
+  return {
+    verified: true, duplicate,
+    paymentId: record.razorpay_payment_id,
+    planLabel: record.planLabel,
+    expiresAt: record.expiresAt,
+    user: publicUser(user),
+  };
+}
+async function getRazorpayEntity(cfg, kind, id) {
+  const r = await fetch('https://api.razorpay.com/v1/' + kind + '/' + encodeURIComponent(id), {
+    headers: {
+      Authorization: 'Basic ' + Buffer.from(cfg.razorpayKeyId + ':' + cfg.razorpayKeySecret).toString('base64'),
+    },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!r.ok) throw new Error('Razorpay ' + kind + ' lookup failed (' + r.status + ')');
+  return r.json();
+}
+
+// Order creation: backend chooses ₹49 / 12 months; a valid login is required.
 app.post('/api/create-order', async (req, res) => {
   const cfg = loadConfig();
   if (!cfg.razorpayKeyId || !cfg.razorpayKeySecret) {
-    return res.status(503).json({ error: 'Setup pending: config.json me Razorpay keys add karein.' });
+    return res.status(503).json({ error: 'Razorpay keys server par setup nahi hain.' });
   }
-  const plan = PLANS[String((req.body || {}).plan || '49')];
-  if (!plan) return res.status(400).json({ error: 'Invalid plan' });
-  const phone = String((req.body || {}).phone || '').replace(/\D/g, '');
+  if (liveSetupError(cfg)) return res.status(503).json({ error: liveSetupError(cfg) });
+  const b = req.body || {};
+  const planKey = String(b.plan || '');
+  const plan = PLANS[planKey];
+  if (!plan) return res.status(400).json({ error: 'Sirf ₹49 / 1 Year plan available hai.' });
+  let user;
+  try { user = findUserByToken(loadDB(), b.token); }
+  catch (e) { return res.status(500).json({ error: 'Account database load nahi hua.' }); }
+  if (!user) return res.status(401).json({ error: 'Pehle login karein.' });
 
   try {
     const r = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(cfg.razorpayKeyId + ':' + cfg.razorpayKeySecret).toString('base64'),
+        Authorization: 'Basic ' + Buffer.from(cfg.razorpayKeyId + ':' + cfg.razorpayKeySecret).toString('base64'),
       },
       body: JSON.stringify({
-        amount: plan.amount * 100, // paise
+        amount: plan.amount * 100, // Razorpay requires INR paise
         currency: 'INR',
-        receipt: 'quiz_' + Date.now(),
-        notes: { plan: plan.label, phone },
+        receipt: 'padhaq_' + crypto.randomBytes(12).toString('hex'),
+        notes: {
+          plan: planKey, planMonths: String(plan.months),
+          phone: user.mobile, username: user.username,
+        },
       }),
+      signal: AbortSignal.timeout(15000),
     });
-    const data = await r.json();
-    if (!r.ok || !data.id) {
-      return res.status(502).json({ error: 'Razorpay order create nahi hua', detail: data });
+    const order = await r.json();
+    if (!r.ok || !order.id || Number(order.amount) !== plan.amount * 100 || order.currency !== 'INR') {
+      return res.status(502).json({ error: 'Razorpay ne ₹49 ka valid order nahi banaya.' });
     }
     res.json({
-      orderId: data.id,
-      amount: plan.amount,
+      orderId: order.id,
+      amount: plan.amount, // rupees, for the existing Blogger checkout code
+      planMonths: plan.months,
       currency: 'INR',
       keyId: cfg.razorpayKeyId,
       planLabel: plan.label,
     });
   } catch (e) {
-    res.status(500).json({ error: 'Order creation error: ' + e.message });
+    console.error('Razorpay order error:', e.message);
+    res.status(502).json({ error: 'Payment server ya Razorpay abhi available nahi hai.' });
   }
 });
 
-// Step 2: SERVER-SIDE verification (yahi asli "payment check" hai)
-// Razorpay signature = HMAC-SHA256(order_id + "|" + payment_id, key_secret)
-// Fake UTR / ghar se bana signature yahan KABHI accept nahi hota.
+// Verify checkout signature AND Razorpay's captured payment, amount, order
+// and server-created user/plan notes. Never trust plan/phone/expiry from JS.
+// File-based storage is safe for one server process. Use a transaction-capable
+// database when running multiple instances.
+const verifyingUsers = new Set();
 app.post('/api/verify-payment', async (req, res) => {
   const cfg = loadConfig();
-  if (!cfg.razorpayKeySecret) {
-    return res.status(503).json({ error: 'Setup pending: Razorpay key_secret missing.' });
+  if (!cfg.razorpayKeyId || !cfg.razorpayKeySecret) {
+    return res.status(503).json({ verified: false, error: 'Razorpay keys server par setup nahi hain.' });
   }
   const b = req.body || {};
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = b;
-  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-    return res.status(400).json({ verified: false, error: 'Payment details missing' });
+  const orderId = String(b.razorpay_order_id || '');
+  const paymentId = String(b.razorpay_payment_id || '');
+  const signature = String(b.razorpay_signature || '');
+  if (!/^order_[a-zA-Z0-9]+$/.test(orderId) || !/^pay_[a-zA-Z0-9]+$/.test(paymentId) ||
+      !/^[a-fA-F0-9]{64}$/.test(signature)) {
+    return res.status(400).json({ verified: false, error: 'Valid payment details missing.' });
   }
+  let db, user;
+  try { db = loadDB(); user = findUserByToken(db, b.token); }
+  catch (e) { return res.status(500).json({ verified: false, error: 'Account database load nahi hua.' }); }
+  if (!user) return res.status(401).json({ verified: false, error: 'Login required for payment verification.' });
 
-  const expected = crypto
-    .createHmac('sha256', cfg.razorpayKeySecret)
-    .update(razorpay_order_id + '|' + razorpay_payment_id)
-    .digest('hex');
-
-  let ok = false;
+  const expected = crypto.createHmac('sha256', cfg.razorpayKeySecret)
+    .update(orderId + '|' + paymentId).digest('hex');
+  if (!sameSecret(expected, signature.toLowerCase())) {
+    return res.status(400).json({ verified: false, error: 'Signature mismatch — payment verify nahi hui.' });
+  }
+  if (verifyingUsers.has(user.username)) {
+    return res.status(409).json({ verified: false, error: 'Verification chal rahi hai. Kuch der baad dobara try karein.' });
+  }
+  const usernameForLock = user.username;
+  verifyingUsers.add(usernameForLock);
   try {
-    ok = crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(String(razorpay_signature), 'hex'));
-  } catch (e) { ok = false; }
-
-  if (!ok) {
-    return res.json({ verified: false, error: 'Signature mismatch — payment verify NAHI hui.' });
-  }
-
-  // Idempotency: same payment dobara submit ho toh dobara entry mat banao
-  const payments = loadPayments();
-  if (payments.some(p => p.razorpay_payment_id === razorpay_payment_id)) {
-    return res.json({ verified: true, duplicate: true, paymentId: razorpay_payment_id });
-  }
-
-  const planKey = String(b.plan || '');
-
-  // Razorpay se ASLI payment details fetch (UTR, method, VPA, contact) — admin panel ke liye
-  let payDetails = { utr: '', method: '', vpa: '', payerContact: '', payerEmail: '' };
-  try {
-    const pr = await fetch('https://api.razorpay.com/v1/payments/' + encodeURIComponent(razorpay_payment_id), {
-      headers: { Authorization: 'Basic ' + Buffer.from(cfg.razorpayKeyId + ':' + cfg.razorpayKeySecret).toString('base64') },
-    });
-    if (pr.ok) {
-      const pj = await pr.json();
-      payDetails = {
-        utr: (pj.acquirer_data && (pj.acquirer_data.bank_transaction_id || pj.acquirer_data.rrn)) || '',
-        method: pj.method || '',
-        vpa: pj.vpa || '',
-        payerContact: pj.contact || '',
-        payerEmail: pj.email || '',
-      };
+    const payments = loadPayments();
+    const old = payments.find(p => p.razorpay_payment_id === paymentId || p.razorpay_order_id === orderId);
+    if (old) {
+      // Do not turn old 1-month or somebody else's payment into a new 1-year subscription.
+      if (old.razorpay_payment_id !== paymentId || old.razorpay_order_id !== orderId ||
+          old.username !== user.username || old.phone !== user.mobile ||
+          old.plan !== '49' || old.planLabel !== PLANS['49'].label || !old.expiresAt) {
+        return res.status(409).json({ verified: false, error: 'Payment already used, or belongs to a legacy/other account.' });
+      }
+      if (user.premium && user.premium.paymentId !== paymentId &&
+          Number(user.premium.expiresAt) >= Number(old.expiresAt)) {
+        return res.status(409).json({ verified: false, error: 'Purana payment pehle use ho chuka hai.' });
+      }
+      activateUserFromRecord(user, old, db);
+      return res.json(verifiedResponse(old, user, true));
     }
-  } catch (e) { /* network issue — details baad me mil jayengi */ }
 
-  const record = {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-    plan: planKey,
-    planLabel: (PLANS[planKey] || {}).label || '',
-    amount: Number(planKey) || 0,
-    phone: String(b.phone || '').replace(/\D/g, ''),
-    name: String(b.name || ''),
-    username: String(b.username || ''),
-    whatsapp: String(b.phone || '').replace(/\D/g, ''),
-    utr: payDetails.utr,
-    method: payDetails.method,
-    vpa: payDetails.vpa,
-    payerContact: payDetails.payerContact,
-    payerEmail: payDetails.payerEmail,
-    verifiedAt: new Date().toISOString(),
-  };
-  payments.unshift(record);
-  savePayments(payments);
+    const [order, payment] = await Promise.all([
+      getRazorpayEntity(cfg, 'orders', orderId),
+      getRazorpayEntity(cfg, 'payments', paymentId),
+    ]);
+    // Refresh state after network I/O so profile/credits/other payments aren't overwritten.
+    db = loadDB();
+    user = findUserByToken(db, b.token);
+    if (!user) return res.status(401).json({ verified: false, error: 'Session expire ho gaya.' });
+    const currentPayments = loadPayments();
+    if (currentPayments.some(p => p.razorpay_payment_id === paymentId || p.razorpay_order_id === orderId)) {
+      return res.status(409).json({ verified: false, error: 'Order pehle verify ho chuka hai. Page refresh karke dobara check karein.' });
+    }
+    const plan = PLANS['49'];
+    const notes = order.notes || {};
+    if (order.id !== orderId || !String(order.receipt || '').startsWith('padhaq_') ||
+        Number(order.amount) !== plan.amount * 100 || order.currency !== 'INR' ||
+        String(notes.plan) !== '49' || String(notes.planMonths) !== '12' ||
+        String(notes.phone) !== String(user.mobile) || String(notes.username) !== String(user.username) ||
+        payment.id !== paymentId || payment.order_id !== orderId ||
+        Number(payment.amount) !== plan.amount * 100 || payment.currency !== 'INR' ||
+        payment.status !== 'captured') {
+      return res.status(409).json({ verified: false, error: 'Payment/order amount, captured status, plan ya account match nahi hua.' });
+    }
 
-  // PREMIUM account (username/mobile) se bandho — login karte hi wapas milega
-  const db = loadDB();
-  const pu = findUserByMobile(db, String(b.phone || '').replace(/\D/g, ''));
-  const months = PLAN_MONTHS[planKey] || 1;
-  const expMs = Date.now() + Math.round(months * 30.44 * 24 * 3600 * 1000);
-  if (pu) {
-    pu.premium = {
-      plan: planKey,
-      planLabel: (PLANS[planKey] || {}).label || '',
-      paymentId: razorpay_payment_id,
-      activatedAt: Date.now(),
-      expiresAt: expMs,
+    const activatedAt = Date.now();
+    // Renewals extend from the existing expiry, rather than discarding paid days.
+    const periodStart = Math.max(activatedAt, Number(user.premium && user.premium.expiresAt) || 0);
+    const expiresAt = oneCalendarYearFrom(periodStart);
+    const record = {
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      plan: '49', planLabel: plan.label,
+      amount: plan.amount, currency: 'INR',
+      phone: user.mobile, whatsapp: user.mobile,
+      username: user.username, name: user.name,
+      activatedAt, expiresAt, verifiedAt: new Date(activatedAt).toISOString(),
     };
-    pu.payments = pu.payments || [];
-    pu.payments.unshift(record);
-    saveDB(db);
+    // Save payment first; if a later user-db write fails, retry repairs the
+    // account from this durable record without ever giving a second year.
+    currentPayments.unshift(record);
+    savePayments(currentPayments);
+    activateUserFromRecord(user, record, db);
+    return res.json(verifiedResponse(record, user));
+  } catch (e) {
+    console.error('Razorpay verification error:', e.message);
+    return res.status(502).json({ verified: false, error: 'Payment verify/save nahi hua. Payment ID sambhal kar admin se sampark karein.' });
+  } finally {
+    verifyingUsers.delete(usernameForLock);
   }
+});
 
-  res.json({ verified: true, paymentId: razorpay_payment_id, planLabel: (PLANS[planKey] || {}).label || '', expiresAt: expMs, user: pu ? publicUser(pu) : null });
+// Admin panel: verified transactions only. Never return signature or secrets.
+app.post('/api/admin/payments', (req, res) => {
+  const cfg = loadConfig();
+  if (!cfg.adminKey || cfg.adminKey.length < 16) {
+    return res.status(503).json({ ok: false, error: 'Render me PADHAQ_ADMIN_KEY (16+ characters) set karein.' });
+  }
+  if (!sameSecret(cfg.adminKey, (req.body || {}).adminKey)) {
+    return res.status(403).json({ ok: false, error: 'Wrong admin key.' });
+  }
+  try {
+    const db = loadDB();
+    const rows = loadPayments().map(p => {
+      const mobile = String(p.phone || p.whatsapp || '');
+      const owner = findUserByMobile(db, mobile);
+      const legacyPrice = { '49': 49, '199': 199, '299': 299 }[String(p.plan)];
+      const amount = Number.isFinite(Number(p.amount)) ? Number(p.amount) : (legacyPrice || 0);
+      return {
+        verifiedAt: p.verifiedAt || '',
+        name: p.name || (owner && owner.name) || '-',
+        whatsapp: mobile,
+        phone: mobile,
+        plan: p.plan || '',
+        planLabel: p.planLabel || 'Legacy plan',
+        amount,
+        razorpay_payment_id: p.razorpay_payment_id || '',
+        razorpay_order_id: p.razorpay_order_id || '',
+        expiresAt: p.expiresAt || null,
+      };
+    });
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ok: true, count: rows.length,
+      totalAmount: rows.reduce((sum, p) => sum + p.amount, 0), rows });
+  } catch (e) {
+    console.error('Admin data error:', e.message);
+    res.status(500).json({ ok: false, error: 'Payment records load nahi hue.' });
+  }
 });
 
 // ================================================================
@@ -222,19 +439,16 @@ app.post('/api/verify-payment', async (req, res) => {
 // ================================================================
 const USERS_PATH = path.join(DATA_DIR, 'users.json');
 const otpStore = new Map(); // phone -> { hash, exp, attempts, count, windowExp, name }
-const PLAN_MONTHS = { '49': 12 };
 
 function loadDB() {
-  try {
-    const db = JSON.parse(fs.readFileSync(USERS_PATH, 'utf8'));
-    if (db && db.users) return db;
-  } catch (e) { /* no db yet */ }
-  return { users: {}, mobileToUser: {} };
+  const db = readJson(USERS_PATH, { users: {}, mobileToUser: {} });
+  if (!db || typeof db.users !== 'object' || !db.users ||
+      typeof db.mobileToUser !== 'object' || !db.mobileToUser) {
+    throw new Error('users.json has an invalid format');
+  }
+  return db;
 }
-function saveDB(db) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(USERS_PATH, JSON.stringify(db, null, 2));
-}
+function saveDB(db) { saveJson(USERS_PATH, db); }
 function sha256(s, salt) { return crypto.createHash('sha256').update(String(salt || '') + String(s)).digest('hex'); }
 
 function findUserByToken(db, token) {
@@ -321,6 +535,12 @@ app.post('/api/login', (req, res) => {
 
 // ---------- Mobile + OTP ----------
 app.post('/api/send-otp', (req, res) => {
+  // The existing OTP is shown in the response itself. Allow it for test mode
+  // only: in live mode it would let anyone take over a paid mobile account.
+  if (/^rzp_live_/.test(loadConfig().razorpayKeyId)) {
+    return res.status(503).json({ ok: false,
+      error: 'Live payments me demo OTP band hai. Username-Password se login karein; OTP ke liye real SMS gateway setup karein.' });
+  }
   const b = req.body || {};
   const phone = String(b.phone || '').replace(/\D/g, '');
   const name = String(b.name || '').trim().slice(0, 30);
@@ -345,6 +565,9 @@ app.post('/api/send-otp', (req, res) => {
 });
 
 app.post('/api/verify-otp', (req, res) => {
+  if (/^rzp_live_/.test(loadConfig().razorpayKeyId)) {
+    return res.status(503).json({ ok: false, error: 'Live mode me demo OTP band hai; Username-Password se login karein.' });
+  }
   const b = req.body || {};
   const phone = String(b.phone || '').replace(/\D/g, '');
   const otp = String(b.otp || '').replace(/\D/g, '');
@@ -408,47 +631,6 @@ app.post('/api/use-credit', (req, res) => {
   u.freeUsed = used + 1;
   saveDB(db);
   res.json({ ok: true, remaining: 3 - u.freeUsed, user: publicUser(u) });
-});
-
-// ---------- ADMIN: all registered users + manual PRO activation ----------
-app.post('/api/admin/users', (req, res) => {
-  const cfg = loadConfig(); const key = String((req.body || {}).adminKey || '');
-  if (key !== String(cfg.adminKey || 'PadhaQ@Rohit')) return res.status(401).json({ ok:false, error:'Admin key galat hai.' });
-  const db = loadDB();
-  const users = Object.values(db.users).map(u => ({ username:u.username, name:u.name, mobile:u.mobile, freeUsed:u.freeUsed||0, premium:u.premium||null, createdAt:u.createdAt||u.created||'' }));
-  res.json({ ok:true, users });
-});
-app.post('/api/admin/activate-pro', (req, res) => {
-  const cfg = loadConfig(); const b=req.body||{}; const key=String(b.adminKey||'');
-  if (key !== String(cfg.adminKey || 'PadhaQ@Rohit')) return res.status(401).json({ok:false,error:'Admin key galat hai.'});
-  const db=loadDB(); const u=db.users[String(b.username||'').toLowerCase()];
-  if (!u) return res.status(404).json({ok:false,error:'User nahi mila.'});
-  const months = 12; const now=Date.now(); const old=(u.premium&&u.premium.expiresAt>now)?u.premium.expiresAt:now;
-  u.premium={ plan:'49', planLabel:'1 Year (Admin Pro)', paymentId:'ADMIN-'+now, activatedAt:now, expiresAt:old+months*30.44*24*3600*1000 };
-  saveDB(db); res.json({ok:true,user:publicUser(u)});
-});
-
-// ---------- ADMIN: payments list (naam, WhatsApp, UTR, Payment ID) ----------
-app.post('/api/admin/payments', (req, res) => {
-  const cfg = loadConfig();
-  const key = String((req.body || {}).adminKey || '');
-  const want = String(cfg.adminKey || 'PadhaQ@Rohit');
-  let okKey = false;
-  try { okKey = key.length === want.length && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(want)); } catch (e) { okKey = false; }
-  if (!okKey) return res.status(401).json({ ok: false, error: 'Admin key galat hai.' });
-
-  const db = loadDB();
-  const rows = [];
-  Object.values(db.users).forEach(u => (u.payments || []).forEach(p => rows.push({
-    ...p,
-    name: p.name || u.name, username: p.username || u.username,
-    whatsapp: p.whatsapp || u.mobile, phone: p.phone || u.mobile,
-  })));
-  const seen = new Set(rows.map(r => r.razorpay_payment_id));
-  loadPayments().forEach(p => { if (!seen.has(p.razorpay_payment_id)) rows.push(p); });
-  rows.sort((a, b) => String(b.verifiedAt || '').localeCompare(String(a.verifiedAt || '')));
-  const totalAmount = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
-  res.json({ ok: true, rows, count: rows.length, totalAmount });
 });
 
 // ---------- start ----------

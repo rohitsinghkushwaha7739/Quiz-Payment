@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="hi" class="h-full">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PadhaQ - AI Notes & PDF Test | Developed by Rohit</title>
+<html lang="hi" class="h-full"><head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>PadhaQ - AI Notes &amp; PDF Test | Developed by Rohit</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- BLACK-GOLD PRO PALETTE (PadhaQ) -->
-    <script>
+    <script>//<![CDATA[
+
         if (window.tailwind) tailwind.config = {
             theme: {
                 extend: {
@@ -20,17 +20,20 @@
                 }
             }
         };
-    </script>
+    
+//]]></script>
     <!-- Inter Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&amp;display=swap" rel="stylesheet"/>
     <!-- PDF.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- Razorpay Checkout (secure payment — UPI/card, UPI tab me QR code) -->
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script>
+    <script>//<![CDATA[
+
         if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
+    
+//]]></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .otp-box { width: 2.6rem; height: 3rem; }
@@ -82,8 +85,13 @@
         #free-pdf-box{border-color:var(--line)!important}
         input,select{background:#0b0907!important;border-color:rgba(212,175,55,.28)!important}
         footer{border-color:var(--line)!important}
-    </style>
-</head>
+        
+        /* Footer analytics: only the signed-in student's local quiz results. */
+        #analytics-section{width:100%;max-width:1120px;margin:0 auto 1.5rem;padding:0 1rem 2rem;box-sizing:border-box}
+        #analytics-section > div:first-child{border-radius:16px}
+        #analytics-section #analytics-history-list{max-height:24rem;overflow-y:auto}
+        @media(max-width:640px){#analytics-section{padding-left:1rem;padding-right:1rem}}
+</style></head>
 <body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-slate-100 min-h-full flex flex-col antialiased">
 
     <!-- Header -->
@@ -91,8 +99,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                     </svg>
                 </div>
                 <div>
@@ -102,13 +110,10 @@
             </div>
 
             <div class="flex items-center space-x-3">
-                <button id="nav-analytics-btn" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors">
-                    📊 Analytics
-                </button>
+                <button id="admin-open-btn" type="button" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20">👑 Admin</button>
                 <button id="nav-premium-btn" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-colors">
                     ⭐ Pro
                 </button>
-                <button id="admin-open-btn" type="button" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20">👑 Admin</button>
                 <div id="user-profile-badge" class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
                     <span id="header-avatar" class="hidden gold-ring w-7 h-7 items-center justify-center text-sm leading-none anim-float">📚</span>
                     <span id="user-email-display" class="text-slate-300 font-medium">Guest</span>
@@ -130,10 +135,10 @@
             <!-- Quick Action Buttons: Upload or Camera -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div id="dropzone" class="border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-900/30 hover:bg-slate-900/50 group relative flex flex-col items-center justify-center">
-                    <input type="file" id="file-input" accept="image/*,.pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <input type="file" id="file-input" accept="image/*,.pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"/>
                     <div class="p-3 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                         </svg>
                     </div>
                     <p class="text-sm font-semibold text-slate-200">PDF ya File Upload Karein</p>
@@ -141,11 +146,11 @@
                 </div>
 
                 <div id="camera-trigger-box" class="border-2 border-dashed border-slate-600 hover:border-cyan-500 rounded-xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-900/30 hover:bg-slate-900/50 group relative flex flex-col items-center justify-center">
-                    <input type="file" id="camera-input" accept="image/*" capture="environment" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <input type="file" id="camera-input" accept="image/*" capture="environment" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"/>
                     <div class="p-3 rounded-full bg-cyan-500/10 text-cyan-400 group-hover:scale-110 transition-transform mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                         </svg>
                     </div>
                     <p class="text-sm font-semibold text-slate-200">Camera se Photo Khinchein</p>
@@ -156,11 +161,11 @@
             <!-- Preview container (Hidden initially) -->
             <div id="preview-container" class="hidden flex flex-col items-center p-4 bg-slate-900/50 rounded-xl border border-slate-700/60 mb-6">
                 <div id="file-icon-preview" class="p-3 rounded-full bg-indigo-600/20 text-indigo-400 mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                 </div>
-                <img id="image-preview" src="" alt="Preview" class="max-h-40 rounded-lg shadow-md border border-slate-700 mb-2 object-contain hidden">
+                <img id="image-preview" src="" alt="Preview" class="max-h-40 rounded-lg shadow-md border border-slate-700 mb-2 object-contain hidden"/>
                 <p id="file-name" class="text-sm text-indigo-300 font-semibold mb-1"></p>
                 <p id="file-status" class="text-xs text-slate-400 mb-2"></p>
                 <button type="button" id="change-file" class="text-xs text-rose-400 hover:text-rose-300 underline font-medium">Doosri file chunein</button>
@@ -176,8 +181,7 @@
                         <p class="text-[11px] font-mono text-emerald-300">pdfdigitalstore.blogspot.com</p>
                     </div>
                 </div>
-                <a href="https://pdfdigitalstore.blogspot.com" target="_blank" rel="noopener noreferrer"
-                    class="shrink-0 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition-colors">
+                <a href="https://pdfdigitalstore.blogspot.com" target="_blank" rel="noopener noreferrer" class="shrink-0 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/30 transition-colors">
                     Free PDF Download →
                 </a>
             </div>
@@ -187,7 +191,7 @@
                 <div id="free-tests-counter" class="text-xs text-amber-400 font-medium bg-amber-500/10 px-3 py-2 rounded-lg border border-amber-500/20">
                     🎁 Free Tests remaining: <span id="remaining-count">3</span>/3
                 </div>
-                <button id="analyze-btn" disabled class="w-full sm:w-auto px-6 py-3 rounded-xl bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2">
+                <button id="analyze-btn" disabled="disabled" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2">
                     <span>Chapters Detect Karein</span>
                 </button>
             </div>
@@ -199,6 +203,106 @@
 
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
                     <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <label for="num-questions" class="text-sm font-medium text-slate-300">Sawaal:</label>
+                        <select id="num-questions" class="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg p-2">
+                            <option value="5">5 Sawaal</option>
+                            <option value="10" selected="selected">10 Sawaal</option>
+                            <option value="25">25 Sawaal</option>
+                            <option value="50">50 Sawaal</option>
+                            <option value="100">100 Sawaal</option>
+                        </select>
+                    </div>
+                    <button id="generate-test-btn" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-emerald-600 text-white font-medium shadow-lg hover:bg-emerald-500 transition-all">
+                        Test Start Karein
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-section" class="hidden my-auto py-16 flex flex-col items-center justify-center">
+            <div class="relative w-16 h-16 mb-4">
+                <div class="absolute inset-0 rounded-full border-4 border-indigo-500/20 animate-pulse"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+            </div>
+            <h3 id="loading-title" class="text-lg font-bold text-white mb-1">Process ho raha hai...</h3>
+            <p id="loading-status-text" class="text-xs text-slate-400 text-center">AI questions taiyar kar raha hai.</p>
+        </div>
+
+        <!-- Quiz Section -->
+        <div id="quiz-section" class="hidden flex-col space-y-6">
+            <div class="flex items-center justify-between bg-slate-800/40 border border-slate-700/60 p-4 rounded-xl">
+                <div>
+                    <h3 class="text-base font-bold text-white" id="quiz-title">Aapka Test</h3>
+                    <p class="text-xs text-slate-400">Sahi option select karein.</p>
+                </div>
+                <button id="reset-btn" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200">Radd Karein</button>
+            </div>
+            <div id="questions-container" class="space-y-6"></div>
+            <div class="flex justify-end pt-4">
+                <button id="submit-quiz-btn" class="px-8 py-3 rounded-xl bg-emerald-600 text-white font-medium shadow-lg hover:bg-emerald-500 transition-all">
+                    Test Submit Karein
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div id="result-section" class="hidden my-auto py-8 flex flex-col items-center justify-center">
+            <div class="bg-slate-800/60 border border-slate-800/80 rounded-2xl p-6 sm:p-8 max-w-xl w-full shadow-2xl backdrop-blur-xl">
+                <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-2xl mb-4 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">🏆</div>
+                <h3 class="text-xl font-bold text-white mb-2 text-center">Test Result</h3>
+
+                <div class="flex items-center justify-around bg-slate-900/60 p-4 rounded-xl border border-slate-700/60 mb-6">
+                    <div class="text-center">
+                        <p class="text-xs text-slate-400 mb-1">Score</p>
+                        <p class="text-2xl font-black text-indigo-400" id="score-display">0/0</p>
+                    </div>
+                    <div class="h-8 w-px bg-slate-700"></div>
+                    <div class="text-center">
+                        <p class="text-xs text-slate-400 mb-1">Percentage</p>
+                        <p class="text-2xl font-black text-emerald-400" id="percentage-display">0%</p>
+                    </div>
+                    <div class="h-8 w-px bg-slate-700"></div>
+                    <div class="text-center">
+                        <p class="text-xs text-slate-400 mb-1">Accuracy</p>
+                        <p class="text-2xl font-black text-cyan-400" id="accuracy-display">0%</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button id="review-btn" class="flex-1 py-3 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium">Explanations Dekhein</button>
+                    <button id="retry-quiz-btn" class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium shadow-lg">Naya Test</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section (Hidden by default) -->
+        <!-- Pro Subscription Modal (₹49 / 1 year, server-verified Razorpay payment) -->
+        <div id="premium-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+                <button id="close-premium-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">×</button>
+                <div class="text-center mb-5">
+                    <span class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold rounded-full">PRO MEMBERSHIP</span>
+                    <h3 class="text-xl font-bold text-white mt-2">Unlimited Tests Unlock Karein</h3>
+                    <p class="text-xs text-slate-400 mt-1">₹49 mein poore 1 saal tak unlimited AI tests.</p>
+                </div>
+
+                <!-- STEP 1: Plan Selection -->
+                <div id="premium-step-1">
+                    <!-- Login required banner (abhi guest hai toh dikhega) -->
+                    <div id="premium-login-banner" class="hidden mb-4 bg-rose-500/10 border border-rose-500/40 rounded-xl p-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-[11px] text-rose-200">⚠️ Pro activate karne se pehle <b>mobile number se login</b> karna zaroori hai.</p>
+                            <button id="premium-login-btn" class="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold">Login Karein</button>
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] font-bold text-slate-400 mb-2">STEP 1 — 1 YEAR PRO PLAN</p>
+                    <div class="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-500/50 bg-amber-500/10 p-4">
+                        <div>
+                            <p class="text-sm font-bold text-white">⭐ PadhaQ Pro — 1 Year</p>
+                            <p class="text-[11px] text-slate-400">12 mahine unlimited AI tests</p>
+                        </div>
+                        <span class="shrink-0 text-xl font-black text-amber-400">₹49</span>
                     </div>
 
                     <button id="proceed-payment-btn" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-lg transition-all">
@@ -211,7 +315,7 @@
                     <p class="text-[11px] font-bold text-slate-400 mb-2">STEP 2 — SECURE PAYMENT</p>
                     <div class="text-center mb-3">
                         <h4 class="text-base font-bold text-white">Sirf <span id="pay-amount-display" class="text-amber-400 text-lg">₹49</span> Pay Karein</h4>
-                        <p id="pay-plan-display" class="text-[11px] text-slate-400">1 Month Plan</p>
+                        <p id="pay-plan-display" class="text-[11px] text-slate-400">1 Year Plan · 12 Months</p>
                     </div>
 
                     <!-- Setup status (keys/server missing toh yahan warning dikhegi) -->
@@ -229,7 +333,7 @@
                     </button>
                     <p id="pay-status" class="text-[11px] text-center text-slate-400 mt-2 min-h-[1rem]"></p>
 
-                    <button id="back-to-plans-btn" class="w-full mt-2 text-[11px] text-slate-400 hover:text-slate-200">← Plan change karein</button>
+                    <button id="back-to-plans-btn" class="w-full mt-2 text-[11px] text-slate-400 hover:text-slate-200">← Pro details dekhein</button>
                 </div>
 
                 <!-- STEP 3: Success -->
@@ -253,9 +357,9 @@
         <!-- Login Modal (Mobile Number + OTP) -->
         <div id="login-modal" class="hidden fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-                <button id="close-login-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">&times;</button>
+                <button id="close-login-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">×</button>
                 <h3 class="text-lg font-bold text-white mb-1">📱 PadhaQ Login</h3>
-                <p class="text-xs text-slate-400 mb-4">Username-Password ya Mobile OTP se login — data aur premium account se judta hai.</p>
+                <p id="login-description" class="text-xs text-slate-400 mb-4">Username-Password ya Mobile OTP se login — data aur premium account se judta hai.</p>
 
                 <!-- Login method tabs -->
                 <div class="flex gap-2 mb-4 text-xs font-bold">
@@ -266,18 +370,14 @@
                 <!-- Panel: Username + Password (Login / Sign Up) -->
                 <div id="login-panel-un">
                     <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Username</label>
-                    <input type="text" id="login-username-input" maxlength="20" placeholder="Jaise: rohit7739" autocomplete="username"
-                        class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3">
+                    <input type="text" id="login-username-input" maxlength="20" placeholder="Jaise: rohit7739" autocomplete="username" class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3"/>
                     <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Password</label>
-                    <input type="password" id="login-password-input" maxlength="30" placeholder="Kam se kam 6 akshar" autocomplete="current-password"
-                        class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3">
+                    <input type="password" id="login-password-input" maxlength="30" placeholder="Kam se kam 6 akshar" autocomplete="current-password" class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3"/>
                     <div id="signup-extra" class="hidden">
                         <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Aapka Naam</label>
-                        <input type="text" id="signup-name-input" maxlength="30" placeholder="Jaise: Rohit Kumar"
-                            class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3">
+                        <input type="text" id="signup-name-input" maxlength="30" placeholder="Jaise: Rohit Kumar" class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-3"/>
                         <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Mobile Number</label>
-                        <input type="tel" id="signup-mobile-input" inputmode="numeric" maxlength="10" placeholder="10 digit mobile number"
-                            class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 font-mono tracking-wider mb-3">
+                        <input type="tel" id="signup-mobile-input" inputmode="numeric" maxlength="10" placeholder="10 digit mobile number" class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 font-mono tracking-wider mb-3"/>
                     </div>
                     <button id="pw-action-btn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm">
                         Login Karein →
@@ -293,13 +393,11 @@
                 <!-- Step A: Phone Number -->
                 <div id="login-step-1">
                     <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Aapka Naam</label>
-                    <input type="text" id="login-name-input" maxlength="30" placeholder="Jaise: Rohit Kumar"
-                        class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-4">
+                    <input type="text" id="login-name-input" maxlength="30" placeholder="Jaise: Rohit Kumar" class="w-full bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-3 mb-4"/>
                     <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Mobile Number</label>
                     <div class="flex items-stretch mb-4">
                         <span class="bg-slate-950 border border-slate-700 border-r-0 rounded-l-lg px-3 flex items-center text-sm text-slate-300 font-semibold">+91</span>
-                        <input type="tel" id="login-phone-input" inputmode="numeric" maxlength="10" placeholder="10 digit mobile number"
-                            class="flex-grow bg-slate-950 border border-slate-700 text-sm text-white rounded-r-lg p-3 font-mono tracking-wider">
+                        <input type="tel" id="login-phone-input" inputmode="numeric" maxlength="10" placeholder="10 digit mobile number" class="flex-grow bg-slate-950 border border-slate-700 text-sm text-white rounded-r-lg p-3 font-mono tracking-wider"/>
                     </div>
                     <button id="send-otp-btn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm">
                         OTP Send Karein →
@@ -321,20 +419,20 @@
 
                     <label class="text-[11px] font-bold text-slate-400 block mb-2">6-Digit OTP Enter Karein</label>
                     <div id="otp-boxes" class="flex justify-center gap-2 mb-4">
-                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none">
-                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none">
-                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none">
-                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none">
-                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none">
-                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none">
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none"/>
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none"/>
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none"/>
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none"/>
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none"/>
+                        <input type="text" inputmode="numeric" maxlength="1" class="otp-box bg-slate-950 border border-slate-700 text-white text-center text-lg font-bold rounded-lg focus:border-indigo-500 outline-none"/>
                     </div>
 
                     <button id="verify-otp-btn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm mb-3">
-                        Verify & Login ✔️
+                        Verify &amp; Login ✔️
                     </button>
                     <div class="flex items-center justify-between text-[11px]">
                         <button id="change-phone-btn" class="text-slate-400 hover:text-slate-200">← Number change karein</button>
-                        <button id="resend-otp-btn" disabled class="text-indigo-400 hover:text-indigo-300 font-semibold disabled:opacity-40 disabled:cursor-not-allowed">OTP Phir Bhejein</button>
+                        <button id="resend-otp-btn" disabled="disabled" class="text-indigo-400 hover:text-indigo-300 font-semibold disabled:opacity-40 disabled:cursor-not-allowed">OTP Phir Bhejein</button>
                     </div>
                 </div>
                 </div>
@@ -344,7 +442,7 @@
         <!-- Profile Modal (Naam + Animated Education Avatars) -->
         <div id="profile-modal" class="hidden fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-                <button id="close-profile-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">&times;</button>
+                <button id="close-profile-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white">×</button>
                 <h3 class="text-lg font-bold text-white mb-4">👤 Mera Profile</h3>
                 <div class="flex justify-center mb-5">
                     <div class="profile-orb">
@@ -356,7 +454,7 @@
                 </div>
                 <label class="text-[11px] font-bold text-slate-400 block mb-1.5">Naam badlein</label>
                 <div class="flex gap-2 mb-5">
-                    <input type="text" id="profile-name-input" maxlength="30" class="flex-grow bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-2.5">
+                    <input type="text" id="profile-name-input" maxlength="30" class="flex-grow bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-2.5"/>
                     <button id="save-profile-btn" class="px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">Save</button>
                 </div>
                 <label class="text-[11px] font-bold text-slate-400 block mb-2">🎓 Education Avatar chunein (animated)</label>
@@ -378,25 +476,25 @@
             </div>
         </div>
 
-        <!-- Admin Panel (#admin se khulta hai) — payments: naam, WhatsApp, UTR, Payment ID -->
+        <!-- Admin Panel (#admin se khulta hai) — verified Razorpay payments -->
         <div id="admin-modal" class="hidden fixed inset-0 z-[80] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-3">
             <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-3xl w-full p-5 shadow-2xl relative max-h-[92vh] overflow-y-auto">
-                <button id="close-admin-modal" class="absolute top-3 right-4 text-slate-400 hover:text-white">&times;</button>
+                <button id="close-admin-modal" class="absolute top-3 right-4 text-slate-400 hover:text-white">×</button>
                 <h3 class="text-lg font-bold text-amber-400 mb-1">👑 PadhaQ Admin Panel</h3>
-                <p class="text-[11px] text-slate-400 mb-3">Har payment: payee ka naam, WhatsApp number, UTR, Payment ID — sab yahan.</p>
+                <p class="text-[11px] text-slate-400 mb-3">Verified payments: naam, mobile, ₹49 yearly plan, Order ID aur Payment ID.</p>
                 <div id="admin-key-row" class="flex gap-2 mb-4">
-                    <input type="password" id="admin-key-input" placeholder="Admin key daalein" class="flex-grow bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-2.5">
+                    <input type="password" id="admin-key-input" placeholder="Admin key daalein" class="flex-grow bg-slate-950 border border-slate-700 text-sm text-white rounded-lg p-2.5"/>
                     <button id="admin-login-btn" class="px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm">Unlock 🔓</button>
                 </div>
+                <button type="button" id="admin-refresh-btn" class="hidden mb-3 px-3 py-1.5 rounded-lg border border-amber-500/30 text-amber-300 text-xs font-bold hover:bg-amber-500/10">↻ Payments Refresh Karein</button>
                 <div id="admin-stats" class="hidden grid grid-cols-2 gap-2 mb-3 text-center">
                     <div class="bg-slate-800/60 border border-amber-500/30 rounded-xl p-2.5"><p class="text-[10px] text-slate-400">Total Payments</p><p id="admin-total-count" class="text-amber-400 font-bold">0</p></div>
                     <div class="bg-slate-800/60 border border-amber-500/30 rounded-xl p-2.5"><p class="text-[10px] text-slate-400">Total Amount</p><p id="admin-total-amount" class="text-amber-400 font-bold">₹0</p></div>
                 </div>
-                <div class="mt-4 border-t border-amber-500/20 pt-4"><button id="admin-users-btn" class="px-3 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold">Registered Users / Manual PRO</button><div id="admin-users-wrap" class="hidden mt-3 overflow-x-auto"><table class="w-full text-[11px] text-left"><thead class="text-amber-400"><tr><th class="p-2">Username</th><th class="p-2">Naam</th><th class="p-2">Mobile</th><th class="p-2">PRO</th><th class="p-2">Action</th></tr></thead><tbody id="admin-users"></tbody></table></div></div>
                 <div id="admin-table-wrap" class="hidden overflow-x-auto">
                     <table class="w-full text-[11px] text-left">
                         <thead class="text-amber-400 border-b border-amber-500/30">
-                            <tr><th class="p-2">Date</th><th class="p-2">Naam</th><th class="p-2">WhatsApp</th><th class="p-2">Plan</th><th class="p-2">₹</th><th class="p-2">UTR</th><th class="p-2">Payment ID</th><th class="p-2">Chat</th></tr>
+                            <tr><th class="p-2">Date</th><th class="p-2">Naam</th><th class="p-2">WhatsApp</th><th class="p-2">Plan</th><th class="p-2">₹</th><th class="p-2">Order ID</th><th class="p-2">Payment ID</th><th class="p-2">Chat</th></tr>
                         </thead>
                         <tbody id="admin-rows"></tbody>
                     </table>
@@ -408,17 +506,43 @@
     </main>
 
     
-<script>
+<footer id="analytics-section" class="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 flex flex-col space-y-5" aria-labelledby="analytics-heading">
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-800/60 p-4 rounded-xl border border-slate-700">
+                <h2 class="text-lg font-bold text-white" id="analytics-heading">📊 Aapki Quiz Analytics</h2>
+                <p id="analytics-owner" class="text-xs text-slate-400 mt-1">Login karke quiz dein; apni analytics yahan dekhein.</p></div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-slate-800/40 border border-slate-700 p-4 rounded-xl text-center">
+                    <p class="text-xs text-slate-400">Total Tests Attempted</p>
+                    <p class="text-2xl font-bold text-indigo-400" id="stat-total-tests">0</p>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700 p-4 rounded-xl text-center">
+                    <p class="text-xs text-slate-400">Overall Accuracy</p>
+                    <p class="text-2xl font-bold text-emerald-400" id="stat-avg-accuracy">0%</p>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700 p-4 rounded-xl text-center">
+                    <p class="text-xs text-slate-400">Correct vs Incorrect</p>
+                    <p class="text-lg font-bold text-cyan-400" id="stat-correct-incorrect">0 / 0</p>
+                </div>
+            </div>
+            <div class="bg-slate-800/40 border border-slate-700 p-5 rounded-xl">
+                <h4 class="text-sm font-bold text-slate-300 mb-3">Chapter-wise History</h4>
+                <div id="analytics-history-list" class="space-y-2 max-h-60 overflow-y-auto text-xs">
+                    <p class="text-slate-500 text-center py-4">Abhi tak aapka koi test saved nahi hai.</p>
+                </div>
+            </div>
+        </footer>
+
+        <script>//<![CDATA[
+
         // ================================================================
         //  CONFIG
         // ================================================================
         const UPI_ID = '7739363879@ybl';                  // Aapki UPI ID (reference)
-        const GEMINI_API_KEY = '';                          // Fallback: Gemini API key (agar server nahi hai)
-        const RAZORPAY_KEY_ID_FALLBACK = '';                // Fallback: Razorpay key id (agar server nahi hai)
-        // ↓↓↓ BLOGGER / standalone file me payment chalane ke liye:
-        // quiz-app folder ko render.com par free host karo (README-SETUP.md me steps),
-        // phir uska URL yahan daalo, jaise: 'https://quiz-payment.onrender.com'
-        const PAYMENT_SERVER_BASE = 'https://quiz-payment.onrender.com';   // Remote payment server (Render) — Blogger/file se bhi payment chalega
+        const GEMINI_API_KEY = '';  // Public frontend me fallback secret mat rakhein; configured server se key aayegi
+        const RAZORPAY_KEY_ID_FALLBACK = 'rzp_test_TekWNULsKgyzeQ';                // Fallback: Razorpay key id (agar server nahi hai)
+        // public/index.html is served by the same Express backend.
+        // Relative URLs work locally and on your deployed Render service.
+        const PAYMENT_SERVER_BASE = '';
         let appConfig = { geminiApiKey: '', razorpayReady: false, razorpayKeyId: '', serverOnline: false };
 
         // API calls: same server par ho toh relative, warna remote payment server par
@@ -426,9 +550,10 @@
             const base = (PAYMENT_SERVER_BASE || '').replace(/\/+$/, '');
             return base + path;
         }
+        // The payment backend must ALSO map plan 49 to 12 months and ₹49.
         const PLANS = {
-            '49':  { label: '1 Year',   months: 12 },
-                    };
+            '49': { label: '1 Year', months: 12 },
+        };
 
         // ================================================================
         //  STATE + STORAGE MIGRATION
@@ -439,7 +564,7 @@
         let account = null;          // { phone, loginAt }
         let premiumInfo = null;      // { phone, plan, planLabel, amount, utr, paidAt, expiresAt }
         let freeTestsCount = parseInt(localStorage.getItem('ai_quiz_free_used') || '0');
-        let analyticsHistory = JSON.parse(localStorage.getItem('ai_quiz_analytics') || '[]');
+        let analyticsHistory = []; // Populated separately for each logged-in account.
 
         (function migrateStorage() {
             const raw = localStorage.getItem('ai_quiz_premium');
@@ -456,7 +581,7 @@
             }
             try {
                 const a = JSON.parse(localStorage.getItem('ai_quiz_account') || 'null');
-                if (a && a.phone) account = a;
+                if (a && (a.phone || a.mobile || a.username)) account = a;
             } catch (e) { account = null; }
             localStorage.removeItem('ai_quiz_user'); // purana email-only login hataya
         })();
@@ -502,7 +627,6 @@
         const quizSection = document.getElementById('quiz-section');
         const quizTitle = document.getElementById('quiz-title');
         const resultSection = document.getElementById('result-section');
-        const analyticsSection = document.getElementById('analytics-section');
 
         const questionsContainer = document.getElementById('questions-container');
         const submitQuizBtn = document.getElementById('submit-quiz-btn');
@@ -533,7 +657,6 @@
 
         // Login modal (mobile + OTP)
         const loginModal = document.getElementById('login-modal');
-        const navAnalyticsBtn = document.getElementById('nav-analytics-btn');
         const closeLoginModal = document.getElementById('close-login-modal');
         const loginStep1 = document.getElementById('login-step-1');
         const loginStep2 = document.getElementById('login-step-2');
@@ -546,7 +669,6 @@
         const verifyOtpBtn = document.getElementById('verify-otp-btn');
         const changePhoneBtn = document.getElementById('change-phone-btn');
         const resendOtpBtn = document.getElementById('resend-otp-btn');
-        const backFromAnalytics = document.getElementById('back-from-analytics');
 
         // ================================================================
         //  AUTH UI
@@ -629,6 +751,7 @@
             }
             updateAuthUI();
             updateFreeLimitUI();
+            loadAnalyticsForCurrentUser();
         }
 
         async function syncMe() {
@@ -642,6 +765,7 @@
                     localStorage.removeItem('ai_quiz_account');
                     updateAuthUI();
                     updateFreeLimitUI();
+                    loadAnalyticsForCurrentUser();
                 }
             } catch (e) { /* offline — local data chalega */ }
         }
@@ -918,6 +1042,7 @@
             document.getElementById('profile-name-display').textContent = nm;
             saveProfileRemote({ name: nm });
             updateAuthUI();
+            renderAnalytics();
             showToast('Naam save ho gaya ✅');
         });
 
@@ -933,6 +1058,7 @@
                 profileModal.classList.add('hidden');
                 updateAuthUI();
                 updateFreeLimitUI();
+                loadAnalyticsForCurrentUser();
                 showToast('Logout ho gaya.');
             }
         });
@@ -963,17 +1089,9 @@
         premiumLoginBtn.addEventListener('click', () => openLoginModal());
         startProBtn.addEventListener('click', () => premiumModal.classList.add('hidden'));
 
-        // Plan selection: proceed button text update
-        document.querySelectorAll('input[name="plan"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                const val = getSelectedPlan();
-                proceedPaymentBtn.textContent = '₹' + val + ' Pay Karein →';
-            });
-        });
-
+        // Exactly one plan: ₹49 for one year (no alternative price selectors).
         function getSelectedPlan() {
-            const r = document.querySelector('input[name="plan"]:checked');
-            return r ? r.value : '49';
+            return '49';
         }
 
         proceedPaymentBtn.addEventListener('click', () => {
@@ -992,7 +1110,7 @@
             const val = getSelectedPlan();
             const plan = PLANS[val];
             payAmountDisplay.textContent = '₹' + val;
-            payPlanDisplay.textContent = plan.label + ' Plan';
+            payPlanDisplay.textContent = plan.label + ' Plan · 12 Months';
             payStatusEl.textContent = '';
             setPayBusy(false);
         }
@@ -1004,10 +1122,11 @@
             paymentSetupWarning.classList.toggle('hidden', ready);
             if (!ready) {
                 let msg;
-                if (PAYMENT_SERVER_BASE) {
-                    msg = '⚠️ Payment server (' + PAYMENT_SERVER_BASE + ') abhi ready nahi ho raha — us server ke config.json me Razorpay keys set hain ya nahi check karein.';
-                } else if (appConfig && appConfig.serverOnline) {
-                    msg = '⚠️ Payment setup pending: <b>quiz-app/config.json</b> me Razorpay keys add karein.';
+                if (appConfig && appConfig.serverOnline) {
+                    msg = appConfig.setupMessage ? '⚠️ ' + esc(appConfig.setupMessage)
+                        : '⚠️ Payment setup pending: Render me Razorpay keys set karein.';
+                } else if (PAYMENT_SERVER_BASE) {
+                    msg = '⚠️ Payment server (' + esc(PAYMENT_SERVER_BASE) + ') abhi connect nahi ho raha.';
                 } else {
                     msg = '⚠️ Payment ke liye ek FREE payment-server chahiye (Blogger/file ke andar verification possible nahi). <b>quiz-app</b> folder ko <b>render.com</b> par deploy karein (README me steps), phir code me <b>PAYMENT_SERVER_BASE</b> me woh URL daalein — jaise hi URL aayega, yahan se payment chalega.';
                 }
@@ -1049,10 +1168,16 @@
                 const r = await fetch(apiUrl('/api/create-order'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ plan: val, phone: account.phone }),
+                    body: JSON.stringify({ plan: val, token: account.token }),
                 });
                 const data = await r.json();
                 if (!r.ok || !data.orderId) throw new Error((data && data.error) || 'Order create nahi hua');
+                // Never collect money for an unconfirmed old ₹49/1-month plan.
+                // The backend must explicitly return planMonths:12 with amount:49.
+                const confirmedMonths = Number(data.planMonths ?? data.months ?? (data.plan && data.plan.months));
+                if (Number(data.amount) !== 49 || confirmedMonths !== 12) {
+                    throw new Error('Server ne ₹49 / 1 Year plan confirm nahi kiya. Payment roki gayi hai; backend update karein.');
+                }
                 openRazorpayCheckout(data, val);
             } catch (e) {
                 setPayBusy(false);
@@ -1077,12 +1202,21 @@
                 prefill: { name: account.name || 'Student', contact: '+91' + account.phone },
                 notes: { plan: plan.label, phone: account.phone },
                 theme: { color: '#d4af37' },
+                // Standard Checkout returns order id, payment id and signature
+                // to this handler; server verification then updates admin records.
+                handler: onRazorpayResponse,
                 modal: {
-                    ondismiss: () => { setPayBusy(false); if (payStatusEl) payStatusEl.textContent = 'Payment cancel ho gayi.'; },
+                    ondismiss: () => {
+                        if (payVerifying) return;
+                        setPayBusy(false);
+                        if (payStatusEl) payStatusEl.textContent = 'Payment cancel ho gayi.';
+                    },
                 },
             });
-            rzp.on('payment.capture', onRazorpayResponse);
-            rzp.on('payment.success', onRazorpayResponse);
+            rzp.on('payment.failed', () => {
+                setPayBusy(false);
+                if (payStatusEl) payStatusEl.textContent = 'Payment fail hui. Phir try karein.';
+            });
             rzp.open();
         }
 
@@ -1098,26 +1232,35 @@
                     razorpay_order_id: resp.razorpay_order_id,
                     razorpay_payment_id: resp.razorpay_payment_id,
                     razorpay_signature: resp.razorpay_signature,
-                    plan: getSelectedPlan(),
-                    phone: account ? account.phone : '',
-                    name: account ? account.name : '',
-                    username: account ? account.username : '',
+                    token: account ? account.token : '', // Account server-side order se link hota hai
                 }),
             })
             .then(r => r.json())
             .then(data => {
                 payVerifying = false;
                 if (data && data.verified) {
+                    // A paid user must receive a server-verified YEAR, not the
+                    // server's old 1-month expiry or a made-up browser date.
+                    const expiresAt = Number(data.expiresAt);
+                    const anniversary = new Date();
+                    anniversary.setFullYear(anniversary.getFullYear() + 1);
+                    if (!Number.isFinite(expiresAt) || expiresAt < anniversary.getTime() - 3 * 86400000) {
+                        setPayBusy(false);
+                        if (payStatusEl) payStatusEl.textContent = '⚠️ 1-year expiry nahi mili. Payment ID: ' + resp.razorpay_payment_id + '. Admin se sampark karein.';
+                        showToast('Payment verify hui, lekin 1 saal ki validity confirm nahi hui. Admin se sampark karein.', 'error');
+                        return;
+                    }
                     activatePro(resp, data);
                 } else {
                     setPayBusy(false);
-                    if (payStatusEl) payStatusEl.textContent = '❌ Payment verify NAHI hui.';
+                    if (payStatusEl) payStatusEl.textContent = '⚠️ Verify pending. Payment ID: ' + resp.razorpay_payment_id + '. Admin se sampark karein.';
                     showToast('Payment verify nahi hui: ' + ((data && data.error) || 'unknown reason'), 'error');
                 }
             })
             .catch(e => {
                 payVerifying = false;
                 setPayBusy(false);
+                if (payStatusEl) payStatusEl.textContent = '⚠️ Server verify pending. Payment ID: ' + resp.razorpay_payment_id + '. Admin se sampark karein.';
                 showToast('Verify server se connect nahi hua: ' + e.message, 'error');
             });
         }
@@ -1126,7 +1269,7 @@
             const val = getSelectedPlan();
             const plan = PLANS[val];
             const now = new Date();
-            const expMs = (serverData && serverData.expiresAt) || (() => { const e = new Date(); e.setMonth(e.getMonth() + plan.months); return e.getTime(); })();
+            const expMs = Number(serverData.expiresAt); // Server-signed annual expiry; no client-side fallback.
 
             premiumInfo = {
                 phone: account ? account.phone : '',
@@ -1165,25 +1308,41 @@
         // ================================================================
         //  ANALYTICS
         // ================================================================
-        navAnalyticsBtn.addEventListener('click', () => {
+        // Each account sees only its own quiz history on THIS browser/domain.
+        // Prior unassigned ai_quiz_analytics data is intentionally not mixed
+        // into an account whose ownership cannot be verified.
+        function analyticsStorageKey() {
+            if (!account) return null;
+            const id = String(account.phone || account.mobile || account.username || '').trim().toLowerCase();
+            return id ? 'ai_quiz_analytics_user:' + encodeURIComponent(id) : null;
+        }
+
+        function loadAnalyticsForCurrentUser() {
+            analyticsHistory = [];
+            const key = analyticsStorageKey();
+            if (key) {
+                try {
+                    const stored = JSON.parse(localStorage.getItem(key) || '[]');
+                    if (Array.isArray(stored)) {
+                        analyticsHistory = stored.filter(item => item &&
+                            Number.isFinite(Number(item.score)) &&
+                            Number.isFinite(Number(item.total)) && Number(item.total) > 0);
+                    }
+                } catch (e) { /* Damaged data should not crash the page. */ }
+            }
             renderAnalytics();
-            uploadSection.classList.add('hidden');
-            quizSection.classList.add('hidden');
-            resultSection.classList.add('hidden');
-            analyticsSection.classList.remove('hidden');
-        });
-        backFromAnalytics.addEventListener('click', () => {
-            analyticsSection.classList.add('hidden');
-            uploadSection.classList.remove('hidden');
-        });
+        }
 
         function renderAnalytics() {
+            document.getElementById('analytics-owner').textContent = account
+                ? (account.name || 'Student') + ' ke is browser ke test results'
+                : 'Login karke quiz dein; apni analytics yahan dekhein.';
             const totalTests = analyticsHistory.length;
             document.getElementById('stat-total-tests').textContent = totalTests;
             if (totalTests === 0) {
                 document.getElementById('stat-avg-accuracy').textContent = "0%";
                 document.getElementById('stat-correct-incorrect').textContent = "0 / 0";
-                document.getElementById('analytics-history-list').innerHTML = `<p class="text-slate-500 text-center py-4">Abhi tak koi test data saved nahi hai.</p>`;
+                document.getElementById('analytics-history-list').innerHTML = `<p class="text-slate-500 text-center py-4">Abhi tak aapka koi test saved nahi hai.</p>`;
                 return;
             }
 
@@ -1192,8 +1351,8 @@
             let historyHtml = '';
 
             analyticsHistory.forEach((item) => {
-                totalCorrect += item.score;
-                totalQ += item.total;
+                totalCorrect += Number(item.score);
+                totalQ += Number(item.total);
                 historyHtml += `
                     <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded-lg border border-slate-700/60">
                         <div>
@@ -1210,7 +1369,7 @@
 
             const avgAcc = totalQ ? ((totalCorrect / totalQ) * 100).toFixed(1) : '0';
             document.getElementById('stat-avg-accuracy').textContent = `${avgAcc}%`;
-            document.getElementById('stat-correct-incorrect').textContent = `${totalCorrect} / ${totalQ}`;
+            document.getElementById('stat-correct-incorrect').textContent = `${totalCorrect} / ${totalQ - totalCorrect}`;
             document.getElementById('analytics-history-list').innerHTML = historyHtml;
         }
 
@@ -1503,8 +1662,12 @@
                 percentage: percentage,
                 date: new Date().toLocaleDateString()
             };
-            analyticsHistory.unshift(record);
-            localStorage.setItem('ai_quiz_analytics', JSON.stringify(analyticsHistory));
+            const historyKey = analyticsStorageKey();
+            if (historyKey) {
+                analyticsHistory.unshift(record);
+                localStorage.setItem(historyKey, JSON.stringify(analyticsHistory));
+                renderAnalytics(); // bottom panel updates immediately after submit
+            }
 
             quizSection.classList.add('hidden');
             resultSection.classList.remove('hidden');
@@ -1549,6 +1712,7 @@
         // Init
         updateAuthUI();
         updateFreeLimitUI();
+        loadAnalyticsForCurrentUser();
         loadAppConfig();
         syncMe();
 
@@ -1563,6 +1727,8 @@
                     geminiApiKey: c.geminiApiKey || '',
                     razorpayReady: !!c.razorpayReady,
                     razorpayKeyId: c.razorpayKeyId || '',
+                    setupMessage: c.setupMessage || '',
+                    demoOtpEnabled: c.demoOtpEnabled !== false,
                     serverOnline: true,
                 };
             } catch (e) {
@@ -1570,10 +1736,17 @@
                     geminiApiKey: GEMINI_API_KEY,
                     razorpayReady: !!RAZORPAY_KEY_ID_FALLBACK,
                     razorpayKeyId: RAZORPAY_KEY_ID_FALLBACK,
+                    setupMessage: '',
+                    demoOtpEnabled: true,
                     serverOnline: false,
                 };
             }
             updatePaymentSetupUI();
+            loginTabMob.classList.toggle('hidden', !appConfig.demoOtpEnabled);
+            document.getElementById('login-description').textContent = appConfig.demoOtpEnabled
+                ? 'Username-Password ya Mobile OTP se login — data aur premium account se judta hai.'
+                : 'Live payments me demo OTP band hai; Username-Password se login karein.';
+            if (!appConfig.demoOtpEnabled) showLoginTab('un');
         }
 
         function getGeminiKey() {
@@ -1583,40 +1756,16 @@
         }
 
         // ================================================================
-        //  ADMIN PANEL (#admin) — payments: naam, WhatsApp, UTR, Payment ID
+        //  ADMIN PANEL (#admin) — verified Razorpay payments
         // ================================================================
         const adminModal = document.getElementById('admin-modal');
-        document.getElementById('close-admin-modal').addEventListener('click', closeAdminPanel);
-        function openAdminPanel() {
-            if (!adminModal) return;
-            adminModal.classList.remove('hidden');
-            adminModal.style.display = 'flex';
-            const key = document.getElementById('admin-key-input');
-            if (key) setTimeout(() => key.focus(), 50);
-        }
-        function closeAdminPanel() {
-            if (!adminModal) return;
-            adminModal.classList.add('hidden');
-            adminModal.style.display = 'none';
-        }
+        document.getElementById('admin-open-btn').addEventListener('click', () => adminModal.classList.remove('hidden'));
+        document.getElementById('close-admin-modal').addEventListener('click', () => adminModal.classList.add('hidden'));
         function checkAdminHash() {
-            const h = (location.hash || '').replace(/^#/, '').toLowerCase().split(/[?&]/)[0];
-            if (h === 'admin' || h === 'padhaq-admin') openAdminPanel();
+            if ((location.hash || '').toLowerCase() === '#admin') adminModal.classList.remove('hidden');
         }
         window.addEventListener('hashchange', checkAdminHash);
-        const adminOpenBtn = document.getElementById('admin-open-btn');
-        if (adminOpenBtn) adminOpenBtn.addEventListener('click', openAdminPanel);
         checkAdminHash();
-
-        async function loadAdminUsers() {
-            const key = document.getElementById('admin-key-input').value.trim();
-            const r = await fetch(apiUrl('/api/admin/users'), {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:key})});
-            const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Users load nahi hue');
-            document.getElementById('admin-users-wrap').classList.remove('hidden');
-            document.getElementById('admin-users').innerHTML = (d.users||[]).map(u => '<tr class="border-b border-slate-800"><td class="p-2">'+esc(u.username)+'</td><td class="p-2">'+esc(u.name||'-')+'</td><td class="p-2">+91 '+esc(u.mobile||'-')+'</td><td class="p-2 text-amber-400">'+(u.premium&&u.premium.expiresAt>Date.now()?'ACTIVE':'No')+'</td><td class="p-2"><button class="admin-pro-btn px-2 py-1 rounded bg-amber-500 text-slate-950 font-bold" data-user="'+esc(u.username)+'">PRO Active</button></td></tr>').join('');
-            document.querySelectorAll('.admin-pro-btn').forEach(btn => btn.addEventListener('click', async()=>{ const x=await fetch(apiUrl('/api/admin/activate-pro'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:key,username:btn.dataset.user})}); const z=await x.json(); showToast(z.ok?'PRO activate ho gaya ✅':(z.error||'Fail'),'error'===z.ok?'error':'info'); loadAdminUsers(); }));
-        }
-        document.getElementById('admin-users-btn').addEventListener('click',()=>loadAdminUsers().catch(e=>showToast(e.message,'error')));
 
         document.getElementById('admin-login-btn').addEventListener('click', async () => {
             const btn = document.getElementById('admin-login-btn');
@@ -1643,17 +1792,25 @@
                         '<td class="p-2 font-mono">' + (wa ? '+91 ' + wa : '-') + '</td>' +
                         '<td class="p-2">' + esc(p.planLabel || p.plan || '-') + '</td>' +
                         '<td class="p-2 text-amber-400 font-bold">₹' + (p.amount || '') + '</td>' +
-                        '<td class="p-2 font-mono text-[10px]">' + esc(p.utr || (p.method === 'card' ? 'Card (UTR nahi)' : '-')) + '</td>' +
-                        '<td class="p-2 font-mono text-[10px] break-all">' + esc(p.razorpay_payment_id || '') + '</td>' +
+                        '<td class="p-2 font-mono text-[10px]">' + esc(p.razorpay_order_id || '-') + '</td>' +
+                        '<td class="p-2 font-mono text-[10px] break-all">' + esc(p.razorpay_payment_id || '-') + '</td>' +
                         '<td class="p-2">' + (wa ? '<a class="text-emerald-400 font-bold" target="_blank" rel="noopener noreferrer" href="https://wa.me/91' + wa + '">WhatsApp</a>' : '-') + '</td>' +
                     '</tr>';
                 }).join('');
-                showToast('Admin panel unlocked 👑');
+                document.getElementById('admin-refresh-btn').classList.remove('hidden');
+                showToast('Payments updated ✅');
             } catch (e) {
+                document.getElementById('admin-stats').classList.add('hidden');
+                document.getElementById('admin-table-wrap').classList.add('hidden');
+                document.getElementById('admin-refresh-btn').classList.add('hidden');
                 showToast(e.message, 'error');
             }
             btn.disabled = false; btn.textContent = 'Unlock 🔓';
         });
-    </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3f2e7906bd42c60',t:'MTc5MDA5NjgzMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+        document.getElementById('admin-refresh-btn').addEventListener('click', () =>
+            document.getElementById('admin-login-btn').click());
+    
+//]]></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3f85b4e0b0dc058',t:'MTc5MDE1NDAwMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
+</body>
 </html>
